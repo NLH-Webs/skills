@@ -27,7 +27,17 @@ Xung đột "ai quyết" tan ngay khi thấy ba người đang trả lời **ba 
 
 > **Luật gốc:** một người vẽ đích, một người vẽ hành lang, **agent đi đường bên trong hành lang tới đích đó — và chỉ dừng lại hỏi khi đích nằm ngoài hành lang.**
 
-## 3. Bảng trọng tài — thứ quyết định thành bại
+## 3. Luật gốc trước khi vào bảng — một người phải có tiếng nói cuối ở một miền
+Trước khi liệt kê từng va chạm, hai người phải chốt **một luật gốc**, không thì mỗi va chạm lại thành một cuộc thương lượng. Cách chốt đã chạy được trong thực tế:
+
+> **Va chạm nào chạm ĐỘ BỀN — kiến trúc, dữ liệu, bảo mật, chi phí gỡ — thì người vẽ hành lang thắng. Không thương lượng, không chia đôi.**
+> **Nhưng làm gì · cho ai · có đúng lúc không — vẫn là của người vẽ đích.** Người vẽ hành lang không lấn sang.
+
+Vì sao chia như vậy chứ không phải ngược lại: thứ xây cho lâu dài mà không kỹ thì sập, và người vẽ đích thường không nhìn được móng. Nhưng biên thứ hai cũng không phải phép lịch sự — **độ bền không có người dùng là thất bại kinh điển của đội kỹ thuật**: sản phẩm dựng chắc như thép, không ai xài. Người vẽ đích giữ ba biên đó là để bảo vệ chính người vẽ hành lang khỏi lặp lại thất bại ấy.
+
+Với luật gốc này, phần lớn bảng trọng tài tự trả lời. Câu đầu tiên agent hỏi khi gặp va chạm không phải "ai đúng" mà là **"cái này có chạm độ bền không?"** Có → xong. Không → mới tra bảng.
+
+## 3b. Bảng trọng tài — thứ quyết định thành bại
 **Gộp hai bộ não không phải là nối hai danh sách luật.** Nhét cả hai vào mà không có trọng tài thì agent gặp va chạm sẽ **chọn vế nào tiện cho mình** — và sẽ luôn tìm được một câu luật để biện minh.
 
 Giá trị nằm ở việc viết ra: **chỗ nào hai người va nhau, ai thắng, và trong điều kiện nào.**
@@ -36,12 +46,12 @@ Sáu kiểu va chạm gặp ở gần như mọi tổ chức, kèm luật chia �
 
 | Va ở đâu | Luật chia |
 |---|---|
-| **Ship nhanh vs ship hoàn hảo** | **Chia theo chi phí gỡ.** Sửa sai tốn dưới một ngày và không đụng dữ liệu đã lưu → ship sớm. Tốn trên một tuần hoặc phải chuyển đổi dữ liệu → không ship khi chưa xong. |
-| **Rào thừa vs quy trình bắt buộc** | **Rào ở CON NGƯỜI thì bỏ; rào ở MÁY thì giữ.** Không bắt ai ký giấy hay họp để duyệt. Nhưng máy vẫn kiểm phiên bản, vẫn chặn commit sai, vẫn đòi ghi quyết định. Rào máy không tốn thời gian của ai. |
-| **Thu nhiều dữ liệu vs thu tối thiểu** | **Thu HÀNH VI rộng, thu DANH TÍNH hẹp.** Sự kiện (ai-làm-gì-lúc-nào) thu tối đa; trường định danh thu tối thiểu, khoá người là **mã** chứ không phải email. Cách duy nhất để cả hai cùng đúng — và là cách xoá dữ liệu cá nhân bằng một thao tác thay vì một dự án. |
-| **Dài hạn vs cửa sổ thị trường** | **Chuẩn dài hạn áp cho LÕI; thị trường áp cho VỎ.** Một tính năng trượt bài test dài hạn **vẫn được làm** nếu nó nằm trọn ở lớp vỏ và gỡ được trong một ngày. |
-| **Dùng đồ có sẵn vs không phụ thuộc nhà cung cấp** | **Lõi tự làm, vỏ đi thuê.** Vỏ thuê thoải mái — miễn là có **lớp adapter** để đổi nhà không phải sửa lõi. |
-| **Duyệt bằng mắt vs duyệt bằng bằng chứng** | **Agent nộp CẢ HAI trong một gói.** Một bản bấm được + một bộ bằng chứng (migration, kiểm thử, cách nghiệm thu). Nộp thiếu một nửa = chắc chắn đẻ thêm một vòng. |
+| **Ship nhanh vs ship hoàn hảo** | **Chạm độ bền → người vẽ hành lang thắng.** Chưa đủ bền thì không ship, kể cả người vẽ đích muốn nhanh. Người vẽ đích giữ quyền *có làm tính năng này không*; người vẽ hành lang giữ quyền *nó đã đủ bền để ra chưa*. Cái giá phải nói rõ từ đầu: ra sản phẩm chậm hơn. |
+| **Rào thừa vs quy trình bắt buộc** | **Chạm độ bền → giữ rào.** Kiểm phiên bản, chặn commit sai, ghi quyết định — giữ hết. Agent chỉ được **đổi hình thức** cho nhẹ với con người (tài liệu do agent viết, không bắt người vẽ đích ký), không được bỏ rào. |
+| **Thu nhiều dữ liệu vs thu tối thiểu** | **Hai câu hỏi khác nhau, hai người khác nhau.** Thu bao nhiêu trường *định danh* = độ bền và pháp lý → người vẽ hành lang, thu tối thiểu. Giữ *hành vi* đã cắt danh tính để học = mục đích sản phẩm → người vẽ đích. Kết quả: **thu HÀNH VI rộng, thu DANH TÍNH hẹp.** Sự kiện (ai-làm-gì-lúc-nào) thu tối đa; trường định danh thu tối thiểu, khoá người là **mã** chứ không phải email. Cách duy nhất để cả hai cùng đúng — và là cách xoá dữ liệu cá nhân bằng một thao tác thay vì một dự án. |
+| **Dài hạn vs cửa sổ thị trường** | **Lõi theo dài hạn, vỏ theo thị trường — và ranh giới lõi/vỏ do người vẽ hành lang vẽ.** Lõi (danh tính, sự kiện, hồ sơ, quyền) không có ngoại lệ vì cửa sổ thị trường. Vỏ (màn hình, cách bán) là *làm gì cho ai* → người vẽ đích. |
+| **Dùng đồ có sẵn vs không phụ thuộc nhà cung cấp** | **Lõi tự làm, vỏ đi thuê — cái gì là lõi do người vẽ hành lang quyết.** Người vẽ đích chỉ dùng công cụ có sẵn trong phần đã được phép thuê. Vỏ thuê thoải mái, miễn có lớp adapter. |
+| **Duyệt bằng mắt vs duyệt bằng bằng chứng** | **Agent nộp CẢ HAI trong một gói** — và nếu chỉ đủ một nửa thì **nửa bằng chứng phải có trước**. Chưa có bằng chứng thì chưa được đưa người vẽ đích bấm. |
 
 **Một va chạm hay bị bỏ sót:** người này ghét thủ tục, người kia coi ghi chép là điều kiện ship. → **Tài liệu là việc của AGENT, không phải việc của người chủ.** Agent tự viết, người chủ không đọc, không ký. Xung đột biến mất hoàn toàn chỉ nhờ đổi đúng người viết.
 
