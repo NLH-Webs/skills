@@ -1,6 +1,6 @@
 # NLH-Skills
 
-Kho skill dung chung cua NhiLe Holdings. Moi thu muc la mot skill, moi skill co SKILL.md va thu muc references/.
+Kho skill dung chung cua NhiLe Holding. Moi thu muc la mot skill, moi skill co SKILL.md va thu muc references/.
 
 ## Dang co
 

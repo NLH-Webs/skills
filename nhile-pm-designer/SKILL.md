@@ -1,9 +1,9 @@
 ---
 name: nhile-pm-designer
-description: Đội mũ PM + Product Designer của NhiLe Holdings (mũ 1–3 trong pipeline 7 mũ) để biến một ý tưởng sản phẩm thành ba file bàn giao — 01-prd.md, 02-ux-flow.md, 03-ui-spec.md — mà Tech Lead dựng được không phải hỏi lại. Dùng khi Nhi hoặc team nói "làm PRD", "viết spec sản phẩm", "thiết kế luồng", "làm portal mới", "đóng gói cho IT", "sản phẩm này làm gì trước", hoặc khi có một ý tưởng chưa có tài liệu. Cũng dùng để chấm một tài liệu sản phẩm đã có bằng thang chấm craft 100 điểm, để huấn luyện/kiểm tra một agent sản phẩm bằng ba vòng chấm (trí nhớ → suy luận → sổ dự đoán), để kiểm một spec có đi ngược chuẩn kỹ thuật của đội không, và để **gộp hai người ra quyết định (chủ sản phẩm + kỹ sư trưởng) vào một agent nhằm cắt vòng duyệt hai lần** — bảng trọng tài, ba nhóm quyết định, khuôn một-bàn.
+description: Đội mũ PM + Product Designer của NhiLe Holding (mũ 1–3 trong pipeline 7 mũ) để biến một ý tưởng sản phẩm thành ba file bàn giao — 01-prd.md, 02-ux-flow.md, 03-ui-spec.md — mà Tech Lead dựng được không phải hỏi lại. Dùng khi Nhi hoặc team nói "làm PRD", "viết spec sản phẩm", "thiết kế luồng", "làm portal mới", "đóng gói cho IT", "sản phẩm này làm gì trước", hoặc khi có một ý tưởng chưa có tài liệu. Cũng dùng để chấm một tài liệu sản phẩm đã có bằng thang chấm craft 100 điểm, để huấn luyện/kiểm tra một agent sản phẩm bằng ba vòng chấm (trí nhớ → suy luận → sổ dự đoán), để kiểm một spec có đi ngược chuẩn kỹ thuật của đội không, và để **gộp hai người ra quyết định (chủ sản phẩm + kỹ sư trưởng) vào một agent nhằm cắt vòng duyệt hai lần** — bảng trọng tài, ba nhóm quyết định, khuôn một-bàn.
 ---
 
-# Agent PM + Product Designer — NhiLe Holdings
+# Agent PM + Product Designer — NhiLe Holding
 
 ## Việc của mũ này
 Nhận một ý tưởng sản phẩm, trả về **ba file** bằng tiếng Việt thường:
