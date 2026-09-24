@@ -47,7 +47,7 @@ so the person can start the GitHub/Cloudflare work in parallel.
 | --- | --- |
 | New module, from the name | "Starting from just a module name", then Phase 1 → 7 |
 | What the shared half of a repo contains, how to create/sync it | `references/kit.md` |
-| Backend mixed into shared code, direct Supabase, permissions in RLS | `references/backend-isolation.md` |
+| Backend mixed into shared code, SQL in services, permissions hidden in the database | `references/backend-isolation.md` |
 | Someone else extracted a module and you must check it | `references/audit-existing-extraction.md` |
 | Code merged, module must run on staging then production | `references/rollout.md` |
 | Before switching a module on in nquoc-user (any environment) | `references/embed-checklist.md` |
@@ -107,11 +107,14 @@ blocking on it.
    real import-graph walk (`references/scripts.md`) before promising anything.
 2. **You are probably on the wrong branch.** Run
    `git -C nquoc-user branch --show-current` first; the team works on `dev`.
-3. **"No direct Supabase usage" is usually only true of the module folder.**
-   Grep the whole closure. Browser-side Storage/Realtime matter most: an
-   embedded web has no Supabase session, so they use the parent's token
-   (nquoc-it's `accessToken: () => authTokens.getAccessToken()`) or a backend
-   endpoint.
+3. **The platform is auth-central + nquoc-backend, nothing else.** Sign-in is
+   auth-central (`auth.nhi.sg`; an embedded web never signs in — the parent
+   hands it the token), files are Cloudflare R2 **behind backend upload
+   endpoints** (nquoc-it: `uploadMediaTo(endpoint, file)`), live updates are
+   the backend's SSE stream (`GET /api/realtime/stream`). N-Quốc left
+   Supabase in 2026: if the donor code still reaches for it anywhere in the
+   closure (old storage, realtime, auth helpers), that path needs a backend
+   endpoint — never a client in the module web.
 4. **Links that leave the module are strings.** Inside the module routes are
    root-relative; a link to another N-Quốc page must go through
    `embedBridge.open(href)`. Lint will not see them — grep `navigate(`, `href=`,
@@ -315,12 +318,12 @@ Produce `plans/<module>-boundary-audit.md`:
 - routes and entry points
 - the **full transitive closure**, with file and line counts
 - which pulled-in files are shared with other modules, and with how many
-- every direct Supabase usage in the closure
+- every call in the closure that does not go through the backend api client (storage, realtime, auth helpers, third-party SDKs)
 - every absolute route in the closure, and which leave the module
 - what the module gets from nquoc-user's chrome
 - cross-module deep links pointing *into* the module (notifications)
 - **backend** (`references/backend-isolation.md` B1): endpoints the closure
-  calls, which are in OpenAPI, direct Supabase on that path, module tables,
+  calls, which are in OpenAPI, SQL outside a repository on that path, module tables,
   where permissions are decided, side effects
 
 Classify each dependency MOVE / COPY / KEEP / REFACTOR-FIRST / BACKEND-OWNED /
@@ -349,8 +352,9 @@ account doing the work, two Workers Builds projects with their build variables
 
 `references/backend-isolation.md` B2, small PRs into `dev`: module folder +
 public `index.ts` → OpenAPI for every endpoint the web calls → repository
-interface + Supabase adapter → integrations behind adapters → explicit policy
-functions → replace browser-side Supabase with endpoints → boundary test.
+interface + Postgres adapter → integrations behind adapters (files: `@/core/storage`,
+R2) → explicit policy functions → any browser-side storage/realtime replaced by
+endpoints → boundary test.
 Model: the Order module (nquoc-backend#383, #385).
 
 Backend ships **before** the frontend that depends on it: staging deploy, then
@@ -361,10 +365,10 @@ Backend ships **before** the frontend that depends on it: staging deploy, then
 Use the migration script in `references/scripts.md` (maps files, rewrites
 imports, reports what it could not resolve). Then, in order:
 
-1. `pnpm typecheck` — expect only Supabase touchpoints, missing npm deps
+1. `pnpm typecheck` — expect only legacy data-access touchpoints (old storage/realtime/auth helpers), missing npm deps
    (add tiptap/recharts/date-fns/radix-* from the donor's `package.json`), and a
    `Index.tsx` vs `index.ts` casing clash (rename the page)
-2. route Supabase touchpoints through `infrastructure/storage` or a module api layer
+2. route those touchpoints through a module api layer against backend endpoints (uploads: multipart POST, as nquoc-it's `infrastructure/storage`)
 3. `pnpm lint` — every boundary crossing it reports is a real finding; a module
    may import another module (the order domain) **only** through `@/modules/order`
 4. **build the order/module public `index.ts` from exactly what the app imports**
@@ -492,7 +496,7 @@ Reference PR: NLH-NQUOC-LABS/nquoc-user#729 (design + it + fit, −12.1k lines).
 - [ ] `embed-protocol.ts` byte-identical to nquoc-user's
 - [ ] opened directly it redirects into nquoc-user; `frame-ancestors` lists only that environment's nquoc-user
 - [ ] staging/production bundles contain no dev login and no MSW (`pnpm smoke`)
-- [ ] no business file imports Supabase, and lint proves it
+- [ ] no file imports `@supabase/*` (the kit ESLint bans it everywhere), and lint proves it
 - [ ] all data access goes through a module api layer; `contract:check` clean or gaps recorded with a `backend_ref`
 - [ ] every migrated file matches `dev` except changes you can name; nothing unreachable from `main.tsx`
 - [ ] the three reviews are clean
@@ -512,9 +516,9 @@ Reference PR: NLH-NQUOC-LABS/nquoc-user#729 (design + it + fit, −12.1k lines).
 | done | **N-Meeting** | 2026-09-16; first Wave-4 (realtime/collab) module — but needed *no* frontend realtime (Google Calendar degraded to an empty state, contract gap recorded); backend `nmeeting` module already existed, needed OpenAPI only; renamed `nmeeting`→`meeting` (backend folder + `/nmeeting`→`/meeting` with the old path kept as a deprecated alias) **after** the initial migration PR, per user request — see gotcha 24; bare domain `meeting.nquoc.vn` |
 | done | **N-HR** | 2026-09-16; staging only so far (`enabled.production: false`) pending the embed-checklist |
 | in progress | **N-Report** | 2026-09-16; migrated from the legacy NReport page; staging enabled, needs new backend time-off read endpoints before production |
-| in progress | **N-Task** | started 2026-09-16 (`plans/task-boundary-audit.md`); first module needing **zero Supabase client** in the module web (realtime + Yjs collab are both parent-owned/dead code, not in the live closure); first backend module isolated **from a completely unisolated state** (0 endpoints in OpenAPI, ~276 direct Supabase calls, 41-branch message-sniffing controller, 33 flat-500 catches, real authorization holes on `/gdrive/*` — see gotchas 19, 22, 23) — the T0–T7 + T-SEC PR-stack pattern here is the reference for any future module in this state, more so than duty/order which already had partial isolation; needed a **new embed-protocol message** (`nquoc:team`, gotcha in `module-embed-architecture.md`) because its board is scoped to the sidebar's active team, unlike every prior module which either owns no team-scoped data or resolves its own primary team from `/users/me/teams` (N-Report's `useActiveTeam` pattern) |
+| in progress | **N-Task** | started 2026-09-16 (`plans/task-boundary-audit.md`); first module needing **no BaaS client at all** in the module web (realtime + Yjs collab are both parent-owned/dead code, not in the live closure); first backend module isolated **from a completely unisolated state** (0 endpoints in OpenAPI, ~276 direct Supabase calls, 41-branch message-sniffing controller, 33 flat-500 catches, real authorization holes on `/gdrive/*` — see gotchas 19, 22, 23) — the T0–T7 + T-SEC PR-stack pattern here is the reference for any future module in this state, more so than duty/order which already had partial isolation; needed a **new embed-protocol message** (`nquoc:team`, gotcha in `module-embed-architecture.md`) because its board is scoped to the sidebar's active team, unlike every prior module which either owns no team-scoped data or resolves its own primary team from `/users/me/teams` (N-Report's `useActiveTeam` pattern) |
 | in progress | **N-Learning** | started 2026-09-17 (`plans/learning-boundary-audit.md` in nquoc-user); backend PR stack merged into one wave (rename `/nlearning`→`/learning` with a deprecated alias, OpenAPI docs file, repository boundary, policy-gated writes, server-side MCQ grading, upload limits, new `POST /learning/activity-events`, boundary test — nquoc-backend#442-447); repo `nquoc-learning` pre-existed as a lone README (gotcha 10) — kit init + full frontend migration in nquoc-learning#1; nquoc-user registered disabled with legacy Training/TrainingDetail pages kept as fallback (nquoc-user#773, same phased pattern as N-HR/N-Report); still needs the nquoc-backend PRs merged + deployed to staging, Cloudflare Workers Builds for nquoc-learning, and the staging embed-checklist before `enabled.staging` can flip |
-| in progress | **N-Team** | started 2026-09-17 (`plans/team-boundary-audit.md`, contract `plans/team-api-contract.md`); first **standalone** kit repo — `team.nquoc.vn` keeps its own login + sidebar and is NOT in nquoc-user `embedded-modules.ts` (kit gains `hosting: "standalone"`: real login via nquoc-backend `/auth/*`, `/auth-callback` for Google + recovery, `frame-ancestors 'none'`); legacy repo was a full antd + Supabase app rebuilt in place (archive tag `archive/legacy-team`); leader-side N-Doc/N-Learning authoring/Feedback admin move to their module repos; backend TM0 security (public/unguarded `/teams` writes) → TM-AUTH redirect_origin → TM1 OpenAPI → TM2 endpoints → TM3 repo+policy → TM4 boundary |
+| in progress | **N-Team** | started 2026-09-17 (`plans/team-boundary-audit.md`, contract `plans/team-api-contract.md`); first **standalone** kit repo — `team.nquoc.vn` keeps its own login + sidebar and is NOT in nquoc-user `embedded-modules.ts` (kit gains `hosting: "standalone"`: real login at auth-central, `/auth-callback` for Google and `/auth/reset-password` for recovery, `frame-ancestors 'none'`); legacy repo was a full antd + Supabase app rebuilt in place (archive tag `archive/legacy-team`); leader-side N-Doc/N-Learning authoring/Feedback admin move to their module repos; backend TM0 security (public/unguarded `/teams` writes) → TM-AUTH redirect_origin → TM1 OpenAPI → TM2 endpoints → TM3 repo+policy → TM4 boundary |
 | 1 | N-Doc, Academy | self-contained, low coupling |
 | 3 | N-Data, Social Content, Potential, Application, Enrollment, Experience, Completion | mostly CRUD over their own domain |
 | 4 | N-Chat | realtime/collab — hardest, do last |

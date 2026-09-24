@@ -134,7 +134,7 @@ const RULES = [
 // Never copy these — the new repo has its own:
 const SKIP = new Set([
   'contexts/AuthContext.tsx', 'hooks/useProfileQueries.ts',
-  'integrations/supabase/client.ts', 'lib/api-client.ts',
+  'lib/api-client.ts',
   'lib/logoutUtils.ts', 'lib/utils.ts', 'stores/teamContextStore.ts',
   'api/userTeams.ts', 'index.css',
 ]);
@@ -143,7 +143,6 @@ const REDIRECTS = new Map([
   ['@/contexts/AuthContext',           '@/infrastructure/auth'],
   ['@/lib/api-client',                 '@/infrastructure/api/api-client'],
   ['@/lib/utils',                      '@/shared/lib/utils'],
-  ['@/integrations/supabase/client',   '@/infrastructure/supabase/client'],
 ]);
 ```
 
