@@ -67,7 +67,7 @@ node_modules/.bin/vite build
 | --- | --- |
 | A `deploy/reverse-proxy`, `platform/` or proxy config in the module repo | There must be none |
 | `@nlh-nquoc-labs/shell`, an `AppShell`, a sidebar or a logout button in the module | nquoc-user owns the chrome; none in the module |
-| Login / auth-callback / reset-password pages, Supabase auth client | Embedded modules never sign in |
+| Login / auth-callback / reset-password pages, any auth client | Embedded modules never sign in (standalone ones use the kit's auth-central login, never their own) |
 | `VITE_BASE_PATH`, `basename`, `dist/<m>/`, `_redirects` | Root build only |
 | `embed-protocol.ts` differing from nquoc-user's | Must be byte-identical |
 | No `_headers` generated, `frame-ancestors *`, or localhost in a prod build | Only that environment's nquoc-user origins |

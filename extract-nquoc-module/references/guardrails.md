@@ -3,8 +3,8 @@
 > **Kit update (2026-09-16):** do not copy `nquoc-it/eslint.config.js` any more — a
 > repo created from `nquoc-module-template` already has the whole config, and it
 > derives the module list from `src/modules/*` instead of a hardcoded array. It
-> also bans raw `fetch`/`XMLHttpRequest` outside the api layers and confines
-> `@supabase/*` to `src/infrastructure/supabase`. Change rules in the template
+> also bans raw `fetch`/`XMLHttpRequest` outside the api layers and bans
+> `@supabase/*` everywhere. Change rules in the template
 > first, then `pnpm kit:sync`. See `kit.md`. The rest of this file explains why
 > each rule exists and how to prove it fires — still worth reading.
 
@@ -29,7 +29,6 @@ Zones:
 
 | target | must not import | why |
 | --- | --- | --- |
-| `src/modules`, `src/app`, `src/shared` | `src/infrastructure/supabase` | business code never learns the provider |
 | `src/app` | `src/modules` except each module's `index.ts` | modules are entered through their public API |
 | `src/modules/<a>` | `src/modules` except its own files and other modules' `index.ts` | no deep cross-module imports |
 | `src/shared` | `src/modules`, `src/app` | lower layers never depend upwards |
@@ -79,13 +78,13 @@ looked right and protected nothing for three commits.
 }],
 ```
 
-Exempt `infrastructure/config/*`, `infrastructure/supabase/*`, `vite-env.d.ts`.
+Exempt `infrastructure/config/*`, `vite-env.d.ts`.
 
 ## Flat config replaces, it does not merge
 
 A later block that names the same rule **replaces** the earlier value. On N-IT
 an `src/app/**` override redefined `no-restricted-imports` with only the
-Supabase pattern, silently disabling the module-boundary check in the one layer
+SDK-ban pattern, silently disabling the module-boundary check in the one layer
 whose whole job is composing modules.
 
 If a block overrides a rule, it must restate everything that rule was doing.
@@ -102,7 +101,7 @@ real.
 
 | probe | where | expected |
 | --- | --- | --- |
-| `import { getSupabaseClient } from '@/infrastructure/supabase/client'` | `src/modules/<m>/` | FAIL |
+| `import { createClient } from '@supabase/supabase-js'` | anywhere in `src/` | FAIL |
 | `import { X } from '../other/internals'` | `src/modules/<m>/` | FAIL — relative must be caught |
 | `import { X } from '@/modules/<m>/routes'` | `src/modules/<m>/` | **PASS** — own module |
 | `import X from '@/modules/<m>/pages/Y'` | `src/app/` | FAIL |
@@ -135,10 +134,7 @@ And holes the N-Design senior review proved with probes, still open in the
 copied config — check by hand until the shared lint preset closes them:
 
 - raw `fetch(...)`, `window.fetch`, `new XMLHttpRequest` in a module
-- `import { createClient } from '@supabase/supabase-js'` directly in a repo that
-  still keeps Supabase for Storage (nquoc-it; nquoc-design bans `@supabase/*`
-  outright)
-- a new folder such as `src/lib/` that re-exports the Supabase client or api client
+- a new folder such as `src/lib/` that re-exports the api client
 - api files that re-export the client without `from`
 - `import.meta.env` inside `infrastructure/**`, `shared/api/**` and module
   `api/**`, where an override *replaces* the rule

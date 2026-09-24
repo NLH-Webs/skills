@@ -1,25 +1,28 @@
 # Backend isolation for a module
 
 Extracting a module's frontend is half the job. If its backend code is still
-mixed into shared services, calls Supabase from everywhere and hides
-permissions in RLS, the team that owns the module still needs Tech for every
-change. `context.md` (backend Phase 9–13) describes the target for the whole
+mixed into shared services, runs queries from everywhere and hides
+permissions in the database, the team that owns the module still needs Tech
+for every change. `context.md` (backend Phase 9–13) describes the target for the whole
 backend; this file applies it **to one module at a time**, in the same wave as
 its frontend extraction.
 
-Not in scope here: moving the module's data from Supabase to PostgreSQL
-(backend Phase 21–24). That is a later, separate track — the repository
-boundary built here is what makes it possible without touching the frontend.
+Data already lives in PostgreSQL (Railway), files in Cloudflare R2 and
+realtime on the backend's SSE stream — the Supabase Exit (2026) is done, and
+the repository boundary built here is what made it possible without touching
+the frontend. The case studies below predate it and name the old
+`supabase-<m>.repository.ts` files; today's equivalent is
+`postgres-<m>.repository.ts`.
 
 ## Reference and current state (check before relying on it)
 
 - **Pattern to copy:** `nquoc-backend/src/modules/order/` — `routes → controllers
   → services → repositories/{order.repository.ts (interface),
-  supabase-order.repository.ts}`, OpenAPI in `openapi/*.docs.ts`, public API in
+  postgres-order.repository.ts + postgres/*.queries.ts}`, OpenAPI in `openapi/*.docs.ts`, public API in
   `index.ts` (nquoc-backend#383 boundary + repository, #385 OpenAPI).
 - **Layer rules:** `nquoc-backend/docs/architecture-boundaries.md`
   (`app → modules → core → integrations → shared`, cross-module only through
-  `@/modules/<name>`, no new `@supabase/supabase-js` imports in modules).
+  `@/modules/<name>`).
 - **State as of 2026-09-16 (N-Admin wave) — the 2026-09-15 gaps are now closed
   for the Order module; re-verify before relying on them for yours:**
   - the boundary test **exists and is green** at
@@ -31,9 +34,9 @@ boundary built here is what makes it possible without touching the frontend.
     `src/modules/order/policies/order.policy.ts` (pure `PolicyDecision`
     functions) called from the order controllers;
   - `order-upload.service.ts` is **behind a storage port**
-    (`repositories/order-file-storage.ts` + `supabase-order-file-storage.ts`),
-    using the service key with a server-built object key — no per-request user
-    JWT. Re-verify the extension-fallback constraint if you copy it.
+    (`repositories/order-file-storage.ts` over `@/core/storage`, R2), with a
+    server-built object key. Re-verify the extension-fallback constraint if you
+    copy it.
   - **Still open for a new module:** every non-order module (duty included) has
     none of the above. Add them as part of the isolation, not as a someday task.
 
@@ -46,12 +49,12 @@ Add to `plans/<module>-boundary-audit.md`:
 | Which endpoints does the frontend closure call? | `pnpm run contract:inventory -- --json` in the module repo / nquoc-user |
 | Which backend files serve them? | route file → controller → service → where data is read |
 | Are they in OpenAPI? | `bun run openapi:audit`; count `@swagger` / `*.docs.ts` per route |
-| Direct Supabase calls on that path? | `git grep -n "supabase\|from('" src/modules/<m>` (+ helpers it imports) |
-| Which tables / buckets / realtime channels belong to the module? | queries on the path; shared tables marked SHARED |
-| Where are permissions decided? | middleware, service `if`s, RLS policies in migrations |
+| SQL outside a repository on that path? | `git grep -n "getSql" src/modules/<m>` outside `repositories/` (+ helpers it imports) |
+| Which tables / storage buckets / realtime topics belong to the module? | queries on the path; shared tables marked SHARED |
+| Where are permissions decided? | middleware, service `if`s, database policies in migrations |
 | Other modules importing its internals, or it importing theirs? | `git grep -n "modules/<m>/" src` and the reverse |
 | Side effects: notifications, cron, telegram, email, uploads | services on the path; `notification/config/topic.config.ts` |
-| Browser-side Supabase in the frontend (Storage, Realtime) | frontend closure grep — each one needs a backend endpoint or the token-based adapter |
+| Anything in the frontend closure that bypasses the backend (uploads, realtime, third-party SDKs) | frontend closure grep — each one needs a backend endpoint |
 
 Classify each item: **MOVE into module**, **STAYS SHARED** (core/integrations),
 **ADAPTER NEEDED**, **CONTRACT GAP**. Stop and get it approved together with the
@@ -81,19 +84,18 @@ Do it in small PRs, each green on its own. Order:
    `git show HEAD:openapi.json` as the base, add just the deltas, keep the base's
    ordering (and its trailing-newline style), then `openapi:audit` to confirm.
 3. **Repository boundary.** `repositories/<m>.repository.ts` (interface named by
-   business operations, not tables) + `supabase-<m>.repository.ts`. Services
-   depend on the interface. No `supabase.from(...)` left in services.
-4. **Integrations behind adapters.** Storage through the object storage
-   adapter (context Phase 27), Telegram/Google/Gemini through `integrations/*`.
+   business operations, not tables) + `postgres-<m>.repository.ts` (SQL via
+   `@/core/db`). Services depend on the interface. No query left in services.
+4. **Integrations behind adapters.** Files through `@/core/storage` (R2), Telegram/Google/Gemini through `integrations/*`.
    No SDK imports in the module's services.
 5. **Policy visible in code.** `policies/<m>.policy.ts` with functions like
-   `canView(user, item)`, `canEdit(user, item)`, called from services. RLS may
-   stay as defense-in-depth but must not be the only check.
-6. **Frontend-side Supabase removed.** Replace browser Storage/Realtime calls
-   with backend endpoints (e.g. upload endpoints like
-   `POST /orders/{teamKey}/uploads`), then remove Supabase from the module web.
+   `canView(user, item)`, `canEdit(user, item)`, called from services. A
+   database policy may stay as defense-in-depth but must not be the only check.
+6. **Nothing in the module web bypasses the backend.** Uploads go to backend
+   endpoints (e.g. `POST /orders/{teamKey}/uploads`), live updates come from
+   the SSE stream (`GET /api/realtime/stream`).
 7. **Guardrails.** A boundary test (the one `architecture-boundaries.md`
-   describes) covering at least this module: no `@supabase/supabase-js` import,
+   describes) covering at least this module: no SQL outside `repositories/`,
    no deep imports into `src/modules/<m>/`. Unit tests for policies and the
    service against a fake repository.
 
@@ -115,16 +117,12 @@ effects. Refactor, don't redesign, in these PRs.
   `next(error)` in the same wave: `normalizeError` ignores a bare `statusCode`,
   so it would 500 every un-converted throw. Add a grep test that fails on a new
   bare `throw new Error('…Forbidden…')`.
-- **Storage adapter:** move the SDK behind a `repositories/<m>-file-storage.ts`
-  port; the service builds the object key server-side from the auth id and never
-  from client input. Dropping the per-request user-JWT client for the service
-  key removes the bucket's `auth.uid()`-prefix RLS as a guard — compensate by
-  constraining the extension fallback (`/^[a-z0-9]{1,8}$/i`) so a crafted
-  filename can't reach the key; test it.
+- **Storage adapter:** a `repositories/<m>-file-storage.ts` port over
+  `@/core/storage`; the service builds the object key server-side from the auth
+  id and never from client input. Constrain the extension fallback
+  (`/^[a-z0-9]{1,8}$/i`) so a crafted filename can't reach the key; test it.
 - **Boundary test lives at `tests/app/…`, not `src/app/…`** (a `test-location`
-  convention test forbids `*.test.ts` under `src/`). Freeze the current
-  `@supabase/supabase-js` debt as an allowlist that may only shrink, and assert
-  the module is not in it. Promote `local/no-module-internal-import` to `error`
+  convention test forbids `*.test.ts` under `src/`). Promote `local/no-module-internal-import` to `error`
   with a scoped `off` only for the OpenAPI aggregator.
 
 **Proven on N-Admin (Duty module) — a module with no repository at all, six
@@ -153,13 +151,11 @@ order:**
   allow/deny/message/status. **D5 wires it** (`enforce(canX(await <fact>))`, a
   one-line `enforce` helper co-located with the decisions) and switches
   `app/routes.ts` to `import { dutyRouter } from '@/modules/duty'`.
-- **D6 boundary test** — mirror the order assertions for duty: no `supabase` from
-  `@/core/config` outside `repositories/`, and `modules/duty/index.ts` frozen.
-  Duty needs no `@supabase/supabase-js` debt entry — it uses the shared client, so
-  guard the `@/core/config` `supabase` import instead.
+- **D6 boundary test** — mirror the order assertions for duty: no database
+  client outside `repositories/`, and `modules/duty/index.ts` frozen.
 
 **Proven on N-Task (ntasks module) — a module starting from *zero* isolation
-(0 endpoints in OpenAPI, ~276 direct Supabase calls across 22 files including
+(0 endpoints in OpenAPI, ~276 direct database calls across 22 files including
 controllers/middleware, message-string-sniffing across 41+33 catch blocks, and
 real authorization holes), split into a wider PR stack than duty's six:**
 
@@ -192,7 +188,7 @@ real authorization holes), split into a wider PR stack than duty's six:**
   parallel** — unlike statusCode splits, a repository introduces a *new*
   interface/naming convention (method names, whether a tangential concern like
   a job queue gets its own repository or folds into the main one, whether
-  controllers that called Supabase directly get routed through a service or
+  controllers that queried the database directly get routed through a service or
   straight to the repository). Let the first sub-area PR establish the pattern
   or fold into it and merge, then hand the next agent that PR's actual files as
   its reference example — "mirror `src/modules/duty/repositories`" is enough
@@ -236,8 +232,8 @@ real authorization holes), split into a wider PR stack than duty's six:**
 
 - [ ] everything the module owns lives in `src/modules/<m>/`, reachable from outside only via `index.ts`
 - [ ] every endpoint the module web calls is documented in OpenAPI and passes `openapi:audit`
-- [ ] services use a repository interface; Supabase appears only in `supabase-<m>.repository.ts` / adapters
+- [ ] services use a repository interface; SQL appears only in `postgres-<m>.repository.ts` / its queries
 - [ ] permissions are explicit policy functions with tests
-- [ ] the module web no longer calls Supabase from the browser (or the remaining use is written down with a plan)
+- [ ] the module web reaches data, files and live updates only through the backend
 - [ ] a boundary test enforces the module's import rules
-- [ ] module-owned tables/buckets listed in the audit, ready for the PostgreSQL track
+- [ ] module-owned tables/buckets listed in the audit

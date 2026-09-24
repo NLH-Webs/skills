@@ -27,8 +27,8 @@ app  ──▶ modules (public API) ──▶ shared ──▶ infrastructure
 ```
 
 `shared` and `infrastructure` never import a module or the app shell. A module
-never imports another module's internals. Nothing outside `infrastructure`
-imports Supabase.
+never imports another module's internals. Nothing imports `@supabase/*` —
+the kit bans it everywhere.
 
 ## Why a module gets a public API
 
@@ -59,23 +59,21 @@ infrastructure/embed             ← token from nquoc-user (postMessage)
 ```
 
 The api client asks `authTokens.getAccessToken()`. It does not read
-`localStorage`, does not import Supabase and does not know it is embedded.
-`auth-tokens.ts` is the only file that knows the token comes from the parent.
-Supabase, where a module still needs it for Storage, sits in
-`infrastructure/supabase` behind `infrastructure/storage` and takes its token
-from the same bridge.
+`localStorage` and does not know it is embedded.
+`auth-tokens.ts` is the only file that knows the token comes from the parent
+(or, for a standalone module and the dev login, from its own auth-central
+session in `dev-session.ts`).
 
 That is the whole point of context.md's "frontend only knows the contract".
 
 ### Object storage
 
-`infrastructure/storage/object-storage.ts` exposes `upload()` and hides the
-provider (context.md Phase 27). In the monolith these were
-`supabase.storage.from(...)` calls sitting in the api layer; behind the
-interface, swapping to Wasabi, S3 or R2 touches one file.
-
-Keep the bucket names and path format **identical** to the monolith, or
-existing objects stop being addressable.
+Files live in Cloudflare R2 **behind nquoc-backend**. The web never holds a
+storage key or picks a bucket: it POSTs the file (multipart) to a backend
+upload endpoint and gets a URL back — nquoc-it's
+`infrastructure/storage/object-storage.ts` (`uploadMediaTo(endpoint, file)`).
+The object-key convention lives in `nquoc-backend/src/core/storage/object-key.util.ts`,
+the only place that can keep it consistent with what is already stored.
 
 ### Config
 
@@ -84,11 +82,11 @@ existing objects stop being addressable.
 
 Two things make this actually work, both learned the hard way:
 
-- The Supabase client must be built **lazily**. `createClient()` throws
-  synchronously on an empty URL, and at module scope that throw happens during
-  the import graph's evaluation — before React renders. The result is a blank
-  page instead of the error screen, on the exact first-run path the README
-  describes.
+- Any SDK client that validates its config must be built **lazily**. A
+  constructor that throws on an empty URL, called at module scope, throws
+  during the import graph's evaluation — before React renders. The result is a
+  blank page instead of the error screen, on the exact first-run path the
+  README describes.
 - Base-path normalisation is **shared** between `vite.config.ts` and the router
   basename. Implemented twice, they drift.
 
@@ -145,8 +143,8 @@ The distinctions that matter:
 - **Cached data belongs to a user.** Clear react-query whenever the user id
   ends or changes.
 - **Fail closed.** A profile with no role is denied.
-- **The module never signs anyone in or out.** No login page, no Supabase auth
-  client, no refresh token. Logout is a message to nquoc-user.
+- **The module never signs anyone in or out.** No login page, no auth client,
+  no refresh token. Logout is a message to nquoc-user.
 
 ## Who may embed it
 

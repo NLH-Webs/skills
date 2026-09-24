@@ -51,7 +51,7 @@ rollout thread.
 ## Module features
 
 - [ ] Create / edit the module's main item end to end (for Order modules: create an order with an attachment, change status, comment)
-- [ ] Every upload the module has (order files, pasted images; N-IT: blog media and release media via Supabase Storage)
+- [ ] Every upload the module has (order files, pasted images; N-IT: blog media and release media via the backend upload endpoints)
 - [ ] Browser permissions the module uses work inside the iframe (N-IT: speech-to-text microphone; clipboard copy)
 - [ ] Modals, drawers, date pickers and toasts open and close correctly inside the content area
 

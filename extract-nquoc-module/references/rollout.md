@@ -83,9 +83,10 @@ answer there (blank page, assets 404). So first make nquoc-user answer.
    connected to the repo (branch `dev`, deploy command
    `pnpm dlx wrangler deploy --env dev`). Build Variables from the Deploy section of the
    module's `README.md`: `VITE_APP_ENV=staging` (not `development` — it decides
-   which nquoc-user may embed the web), `VITE_API_URL` (+ Supabase for Storage
-   modules). Delete the old `VITE_BASE_PATH`, `VITE_AUTH_STORAGE_KEY` and
-   `NODE_AUTH_TOKEN`.
+   which nquoc-user may embed the web), `VITE_API_URL` (+ `VITE_AUTH_URL` for a
+   standalone module). Delete the old `VITE_BASE_PATH`, `VITE_AUTH_STORAGE_KEY`,
+   `NODE_AUTH_TOKEN`, and any `VITE_SUPABASE_*` / `VITE_AUTH_DRIVER` /
+   `VITE_REALTIME_DRIVER` left from before 2026-09.
 2. Deploy (merge to `dev` triggers Workers Builds). `routes` with
    `custom_domain = true` attaches `preview.<m>.nquoc.vn`; if the domain is
    already attached to that Worker in the dashboard, nothing changes.
@@ -131,8 +132,8 @@ answer there (blank page, assets 404). So first make nquoc-user answer.
    ```
 
    Then `git diff --stat origin/dev origin/main -- src/modules/<domain>`.
-4. **You:** module bundle config matches production: API `api.nquoc.vn`; for
-   Storage modules the Supabase project `yaxssarm…` (staging is `myuhrgws…`).
+4. **You:** module bundle config matches production: API `api.nquoc.vn`; for a
+   standalone module `VITE_AUTH_URL=https://auth.nhi.sg` (staging is `auth-dev.nhi.sg`).
 
 ## 6. Cut over in production
 
@@ -167,5 +168,4 @@ Quiet hour. Explain the rollback to the human before starting.
   Custom Domain, confirm the move), check the site, then delete
   `nquoc-proxy-dev/prod`. In nquoc-user delete `platform/` and the `edge:*` scripts
   (`packages/shell/` and both workflows are already gone); deprecate
-  `@nlh-nquoc-labs/shell` on GitHub Packages; remove the per-module
-  Supabase redirect URLs (`/n-<m>/auth-callback`).
+  `@nlh-nquoc-labs/shell` on GitHub Packages.

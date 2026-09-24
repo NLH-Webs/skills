@@ -16,7 +16,7 @@ Applied to `nquoc-design`, `nquoc-it`, `nquoc-fit` and `nquoc-edit` (2026-09-15/
 | Embedding | embed bridge + `parent-app.ts` table (development / preview / staging / production), `frame-ancestors` written into `dist/_headers` at build time |
 | Contract | `pnpm contract:refresh` (staging OpenAPI → `generated/` + `src/infrastructure/api/contract-types.ts`), `contract:check`, `approved-contract-gaps.json` |
 | Mocks | MSW under `src/mocks/`, **only** in `pnpm dev` with `VITE_ENABLE_MOCKING=true`; a build with mocks on fails |
-| Guardrails | ESLint (no `fetch`/XHR outside the api layers, no `import.meta.env` outside config, no `@supabase/*` outside `infrastructure/supabase`, no deep imports between modules), husky (`dev`/`main` + secret files, `pre-push` runs `verify`) |
+| Guardrails | ESLint (no `fetch`/XHR outside the api layers, no `import.meta.env` outside config, no `@supabase/*` anywhere, no deep imports between modules), husky (`dev`/`main` + secret files, `pre-push` runs `verify`) |
 | CI | `.github/workflows/`: `verify`, `contract-drift`, `guard-direct-push`, `kit-drift` |
 | Deploy | `wrangler.toml` with `-prod` (root), `[env.dev]`, `[env.preview]`; `pnpm deploy:preview` (one preview URL per branch) |
 | Docs | `CLAUDE.md` (two git lanes, locked stack, core files), `agents/api-vibe-coding.md` (API checklist, `BLOCKED_BY_TECH`), README |
@@ -71,15 +71,20 @@ pnpm kit:sync                            # copy the template's kit files over th
 
 Rule: **change a kit file in the template first**, merge it there, then
 `pnpm kit:sync` in each module repo as a Tech PR. `kit-exceptions.json` records
-a reviewed, temporary difference (nquoc-it's Supabase Storage config is one).
+a reviewed, temporary difference (none exist today).
+A kit change for **every** module repo at once: `node scripts/fleet-kit-sync.mjs --dry-run`
+in the template, then with `--branch`/`--title`/`--notes` — one PR per repo into `dev`,
+`pnpm verify` run first, re-runnable (repos that already have the PR are skipped).
 The `kit-drift` workflow opens an issue weekly; it needs a repository secret
 `KIT_READ_TOKEN` (fine-grained, read Contents on the template).
 
 ## Dev login (development / preview only)
 
 - Standalone + `VITE_APP_ENV` `development` or `preview` → `DevLoginScreen`
-  posts to `/auth/login` on the configured backend and refreshes through
-  `/auth/refresh`; the session lives in `localStorage` per module + API URL.
+  posts to `/auth/login` at auth-central (`VITE_AUTH_URL`, staging:
+  `https://auth-dev.nhi.sg`) and refreshes through its `/auth/refresh`; the
+  session lives in `localStorage` per module + API URL. Without
+  `VITE_AUTH_URL` the web shows the config-error screen.
 - Inside nquoc-user's iframe the embed bridge supplies the token; the dev login
   never appears.
 - `staging` / `production` builds contain neither the form nor MSW — verified by
@@ -101,19 +106,22 @@ own sidebar, staging and production) sets `"hosting": "standalone"` in
   `dev-session.ts`); standalone bundles contain no dev login and no embed
   bridge messages.
 - Runtime: no redirect to nquoc-user, `frame-ancestors 'none'`, bridge inert,
-  `LoginScreen` (`data-login`) in every env, `/auth-callback` mounted by
-  `App.tsx` (not routes.tsx) for Google (`POST /auth/google/callback` validates
-  before storing) and recovery (`POST /auth/reset-password`). Tokens only in
-  `localStorage` `nquoc:session:<key>:<api>`; `main.tsx` strips the hash first.
-- Backend contract: `plans/team-api-contract.md` → Auth (`redirect_origin`).
-- Cloudflare build variables: **same** as an embedded module.
-- **Human step**: Supabase Auth → Redirect URLs add `https://<key>.nquoc.vn/auth-callback`,
-  `https://preview.<key>.nquoc.vn/auth-callback`, `http://localhost:<devPort>/auth-callback`;
-  backend `AUTH_REDIRECT_ORIGINS` on staging/production. Without it Google and
-  "Quên mật khẩu?" fail.
+  `LoginScreen` (`data-login`) in every env, signing in at **auth-central**.
+  `App.tsx` (not routes.tsx) mounts auth-central's two return pages:
+  `/auth-callback` (Google comes back with `#access_token…`; kept only after
+  the backend's `GET /auth/me` confirms an N-Quốc profile — invite-only) and
+  `/auth/reset-password?token=…` (the recovery email; `POST /auth/password/reset`
+  at auth-central). Tokens only in `localStorage` `nquoc:session:<key>:<api>`;
+  `main.tsx` strips them from the address bar first.
+- Cloudflare build variables: an embedded module's, **plus `VITE_AUTH_URL`**
+  (`https://auth.nhi.sg` on -prod, `https://auth-dev.nhi.sg` on -dev).
+- **Human step**: auth-central `ALLOWED_RETURN_ORIGINS` (both environments)
+  adds `https://<key>.nquoc.vn`, `https://preview.<key>.nquoc.vn`,
+  `http://localhost:<devPort>`. Without it Google answers 400 and
+  "Quên mật khẩu?" is refused.
 - `pnpm smoke` switches to standalone checks (`'none'`, `data-login` present,
-  no `data-dev-login`/MSW, `/auth-callback` serves the SPA) and prints a
-  standalone manual checklist.
+  no `data-dev-login`/MSW, `/auth-callback` and `/auth/reset-password` serve
+  the SPA) and prints a standalone manual checklist.
 - Chrome (sidebar, logout via `useAuth().signOut`) lives in the module-owned
   `src/app/layout/AppLayout.tsx`.
 

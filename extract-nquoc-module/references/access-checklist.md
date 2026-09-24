@@ -67,18 +67,22 @@ gh auth refresh -h github.com -s read:packages > "$TEMP/ghrefresh.log" 2>&1 < /d
   "Hostname already in use by other custom domain". Remove it from the proxy
   first, then add it to nquoc-user straight away (1–3 minutes without the site).
 
-## Supabase
+## auth-central (sign-in)
 
-| Project | Ref | Used by |
+| Environment | URL (`VITE_AUTH_URL`) | Used by |
 | --- | --- | --- |
-| production | `yaxssarmqevxsbfsatxn` | `nquoc.vn`, `*-prod` Workers |
-| staging | `myuhrgwsavyuukgqltog` | `preview.nquoc.vn`, `*-dev` Workers |
+| production | `https://auth.nhi.sg` | `nquoc.vn`, standalone `*-prod` Workers |
+| staging | `https://auth-dev.nhi.sg` | `preview.nquoc.vn`, standalone `*-dev` Workers, dev login, `pnpm deploy:preview` |
 
-Authentication → URL Configuration → Redirect URLs needs only the nquoc-user
-origin wildcards (`https://preview.nquoc.vn/**`, `https://nquoc.vn/**`).
-Embedded modules never sign in, so they need no redirect URL. Old per-module
-entries (`/n-it/auth-callback`, `/n-design/auth-callback`) can be removed once
-both modules are embedded. Never change Site URL.
+Embedded modules never sign in, so they need nothing here. A **standalone**
+module (`"hosting": "standalone"`) needs its origins in auth-central's
+`ALLOWED_RETURN_ORIGINS` on both environments (`https://<key>.nquoc.vn`,
+`https://preview.<key>.nquoc.vn`, `http://localhost:<devPort>`); without it
+Google answers 400 and the recovery email is refused.
+
+Storage is Cloudflare R2 and realtime is the backend's SSE stream — both behind
+nquoc-backend, so a module web needs no access to either. (N-Quốc left Supabase
+in 2026; its projects are frozen.)
 
 ## nquoc-backend
 
