@@ -65,6 +65,7 @@ Cài bằng một biến CSS mỗi họ màu:
 - Viền trên thẻ: class `border-[#xxx]` chung sẽ đè `border-top-color` — dùng `border-t-[color:var(--tone)]` trong cùng chuỗi class.
 - Biểu đồ và dashboard phải dùng **cùng** màu cho cùng trạng thái.
 - Màu kèm chữ, luôn luôn.
+- **Tín hiệu phụ (gấp, quá hạn) không được trùng màu với một giai đoạn.** Chip "Gấp" màu hổ phách nằm trên đầu thẻ "Chờ nhận" cũng hổ phách → thẻ gấp và thẻ thường trông y hệt. Cho tín hiệu phụ một **dạng** riêng chứ không chỉ một màu: viền vòng đỏ quanh thẻ, chip đặc màu (chữ đảo màu), thêm chữ vào nhãn ("Chờ nhận · Gấp"), và đưa lên đầu danh sách.
 
 ## 6. Thẻ cho biết điều quan trọng nhất
 - Hiện **hạn chót** (tô màu theo độ gấp) thay cho ngày tạo không nhãn; đơn xong thì hiện "Tạo dd/mm".
