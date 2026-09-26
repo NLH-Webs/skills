@@ -9,6 +9,7 @@ Kho skill dung chung cua NhiLe Holding. Moi thu muc la mot skill, moi skill co S
 | extract-nquoc-module/ | (xem SKILL.md trong thu muc) |
 | product-loop-review/ | Mo san pham web dang chay, tu bam nhu nguoi dung that, soi qua 10 vai cua vong doi san pham (PM, UX, UI, Tech Lead, Dev, QA, DevOps, Data, Growth, CS), do moi phat hien bang bang chung, roi tu sua giao dien - he mau trang thai, dark mode, hieu ung khi go, lam gon form, cac tab phu, toi uu dien thoai - va mo PR nho. Kem cong thuc do trong trang, khuon sua va bay cong cu. |
 | nhile-pm-designer/ | Doi mu PM + Product Designer (mu 1-3): bien mot y tuong san pham thanh ba file ban giao 01-prd.md, 02-ux-flow.md, 03-ui-spec.md ma Tech Lead dung duoc khong phai hoi lai. Kem thang cham craft 100 diem, cach goi ten van de, va cach cham mot agent san pham bang ba vong. |
+| livestream-video-edit/ | Dung mot buoi livestream / talking head dai thanh short doc 9:16 va video dai ngang 16:9 co chuong: boc chu moc tung tu, chon doan, loc san, cat canh theo bo cuc nguon (slide, bang trang, chia se man hinh), phu de chu dong, b-roll co so ban quyen, nhac ne giong, chuan do to (do dinh that sau AAC), lam mo thong tin rieng tu, tu kiem va tu nhin khung hinh truoc khi giao. Kem script: tim moc cat, loc san, lam tieng, tim/tai b-roll Pexels, luoi khung, do va che vung rieng tu, chon khung bia. |
 
 ## LUAT CUA KHO NAY
 

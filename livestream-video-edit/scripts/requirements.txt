@@ -1,0 +1,6 @@
+# Python 3.10+ ; ffmpeg/ffprobe cần có trong PATH (hoặc đặt biến FFMPEG / FFPROBE)
+numpy
+requests
+pillow
+opencv-python<5      # OpenCV 5 bỏ Haar cascade (dò mặt)
+rembg                # chỉ cho mat_tren_bia.py (tách nền người nói)
