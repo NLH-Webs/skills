@@ -80,15 +80,15 @@ node_modules/.bin/vite build
 ## 4. Live state, before advising deploys
 
 ```bash
-curl -s -D - -o /dev/null https://preview.nquoc.vn/n-<m>/
+curl -s -D - -o /dev/null https://preview.<host-domain>/n-<m>/
 ```
 
 - `x-nquoc-route: n-<m>` → the old edge proxy still sends the path to the module
   Worker (`rollout.md` §2 first). `nquoc-user…` or no header → nquoc-user answers.
 - Whether nquoc-user embeds the module: download its bundle
-  (`curl -s https://preview.nquoc.vn/ | grep -oE '/assets/index-[^"]+\.js'`) and
-  grep for the module domain (`preview.<m>.nquoc.vn`).
-- The module itself: `pnpm run smoke https://preview.<m>.nquoc.vn`; its bundle
+  (`curl -s https://preview.<host-domain>/ | grep -oE '/assets/index-[^"]+\.js'`) and
+  grep for the module domain (`preview.<m>.<host-domain>`).
+- The module itself: `pnpm run smoke https://preview.<m>.<host-domain>`; its bundle
   shows the API host and parent origins it was built for.
 
 ## 5. Reviews

@@ -11,7 +11,7 @@ Applied to `nquoc-design`, `nquoc-it`, `nquoc-fit` and `nquoc-edit` (2026-09-15/
 
 | Area | What you get |
 | --- | --- |
-| Dev without a backend | `.env.example` points at staging (`https://api-dev.nquoc.vn/api`); `pnpm dev` shows a **dev login** form (staging account) when the web runs standalone |
+| Dev without a backend | `.env.example` points at staging (`https://<staging-api-domain>/api`); `pnpm dev` shows a **dev login** form (staging account) when the web runs standalone |
 | Identity | `nquoc-module.json` (`key`, `name`, `devPort`) — the only file that differs per module; every kit file reads it |
 | Embedding | embed bridge + `parent-app.ts` table (development / preview / staging / production), `frame-ancestors` written into `dist/_headers` at build time |
 | Contract | `pnpm contract:refresh` (staging OpenAPI → `generated/` + `src/infrastructure/api/contract-types.ts`), `contract:check`, `approved-contract-gaps.json` |
@@ -35,8 +35,8 @@ pnpm install && cp .env.example .env && pnpm dev
 
 `init-module.mjs` writes `nquoc-module.json` and renames `example` everywhere
 (package name, wrangler workers + domains, README, CLAUDE.md, the starter
-module folder), producing **`<key>.nquoc.vn`** / `preview.<key>.nquoc.vn`
-(the module domain; users only ever see `nquoc.vn/n-<key>`). Ports in use:
+module folder), producing **`<key>.<host-domain>`** / `preview.<key>.<host-domain>`
+(the module domain; users only ever see `<host-domain>/n-<key>`). Ports in use:
 `nquoc-user` 8080, it 8081, design 8082, fit 8083, edit 8084 — take the next
 free one and use the same value in nquoc-user's `embedded-modules.ts`.
 
@@ -94,7 +94,7 @@ The `kit-drift` workflow opens an issue weekly; it needs a repository secret
 
 ## Standalone hosting (own domain, own login — e.g. N-Team)
 
-A kit repo that is **not** embedded in nquoc-user (`team.nquoc.vn`: own login,
+A kit repo that is **not** embedded in nquoc-user (`<kit-app-domain>`: own login,
 own sidebar, staging and production) sets `"hosting": "standalone"` in
 `nquoc-module.json` (default `"embedded"`; new repo:
 `init-module.mjs <key> "<Name>" <port> --standalone`). Added in
@@ -116,7 +116,7 @@ own sidebar, staging and production) sets `"hosting": "standalone"` in
 - Cloudflare build variables: an embedded module's, **plus `VITE_AUTH_URL`**
   (`https://auth.nhi.sg` on -prod, `https://auth-dev.nhi.sg` on -dev).
 - **Human step**: auth-central `ALLOWED_RETURN_ORIGINS` (both environments)
-  adds `https://<key>.nquoc.vn`, `https://preview.<key>.nquoc.vn`,
+  adds `https://<key>.<host-domain>`, `https://preview.<key>.<host-domain>`,
   `http://localhost:<devPort>`. Without it Google answers 400 and
   "Quên mật khẩu?" is refused.
 - `pnpm smoke` switches to standalone checks (`'none'`, `data-login` present,
@@ -127,8 +127,8 @@ own sidebar, staging and production) sets `"hosting": "standalone"` in
 
 ## Embedding in a standalone host (N-Team)
 
-A standalone kit app (`team.nquoc.vn`) can show module pages (N-Feedback
-`/admin`, N-Learning `/manage`, N-Doc) in its content area the way nquoc.vn
+A standalone kit app (`<kit-app-domain>`) can show module pages (N-Feedback
+`/admin`, N-Learning `/manage`, N-Doc) in its content area the way <host-domain>
 does, with its own session. Added in `nquoc-module-template`
 (`feat/kit-extra-embedders`, stacked on `feat/kit-standalone-hosting`).
 Protocol (`embed-protocol.ts`) unchanged; nquoc-user needs no change.
@@ -136,11 +136,11 @@ Protocol (`embed-protocol.ts`) unchanged; nquoc-user needs no change.
 - **Module side, opt-in**: `nquoc-module.json` `"embedders": ["team"]` (default
   `[]`; distinct lower-case keys; not allowed with `"hosting": "standalone"`).
   Known keys: `EMBEDDER_ORIGIN_BY_ENV` in `config/parent-app.ts` — `team`: dev
-  `http://localhost:8097`, preview/staging `https://preview.team.nquoc.vn`,
-  production `https://team.nquoc.vn`. Unknown key → build fails.
+  `http://localhost:8097`, preview/staging `https://preview.<kit-app-domain>`,
+  production `https://<kit-app-domain>`. Unknown key → build fails.
   `resolveEmbedderOrigins(appEnv)` feeds both `env.parentOrigins` (bridge
   trust list) and `frame-ancestors` (e.g. staging
-  `https://preview.nquoc.vn https://preview.team.nquoc.vn`). Direct visits still
+  `https://preview.<host-domain> https://preview.<kit-app-domain>`). Direct visits still
   redirect to nquoc-user. Without `embedders` nothing changes.
 - **Bridge handshake**: never `*`. `location.ancestorOrigins[0]` (Chromium/WebKit)
   locks the parent before `ready` when it is trusted; otherwise `ready` is posted
@@ -153,16 +153,16 @@ Protocol (`embed-protocol.ts`) unchanged; nquoc-user needs no change.
   `EmbeddedModule.tsx`), `infrastructure/embed/host-bridge.ts` (port of
   `parent-bridge.ts` + `module-paths.ts` + `resolveOpenTarget`),
   `infrastructure/config/host-modules.ts` (feedback 8093, learning 8091, doc 8092;
-  `<key>.nquoc.vn` / `preview.<key>.nquoc.vn`). Token = host `authTokens`;
+  `<key>.<host-domain>` / `preview.<key>.<host-domain>`). Token = host `authTokens`;
   refresh = session refresh; failed refresh / `logout` / `auth-failed` → host
   `signOut`; `navigated` → `basePath + path` (replace); `open` → in `hostPaths`
   (default `[basePath]`) navigates, other paths → new tab on nquoc-user, https
-  `*.nquoc.vn` URL → new tab, anything else ignored.
+  `*.<host-domain>` URL → new tab, anything else ignored.
 - **Rollout order**: module PR adding `"embedders": ["team"]` deployed first
-  (`curl -sI https://preview.<key>.nquoc.vn | grep -i frame-ancestors` shows both
+  (`curl -sI https://preview.<key>.<host-domain> | grep -i frame-ancestors` shows both
   origins), then the N-Team route. `pnpm smoke` compares frame-ancestors with
   nquoc-user + `embedders`. A `*.workers.dev` preview of N-Team cannot frame
-  modules; test on `preview.team.nquoc.vn`.
+  modules; test on `preview.<kit-app-domain>`.
 - Caveat: a module's `auth-failed` (403 / role not allowed in that module) signs
   the user out of the host too — same as nquoc-user. A team page should only
   link to module pages the member can use.
@@ -197,13 +197,13 @@ Build **variables** (not runtime variables):
 
 | Worker | Variables |
 | --- | --- |
-| `-dev` | `VITE_APP_ENV=staging`, `VITE_API_URL=https://api-dev.nquoc.vn/api` |
-| `-prod` | `VITE_APP_ENV=production`, `VITE_API_URL=https://api.nquoc.vn/api` |
+| `-dev` | `VITE_APP_ENV=staging`, `VITE_API_URL=https://<staging-api-domain>/api` |
+| `-prod` | `VITE_APP_ENV=production`, `VITE_API_URL=https://<production-api-domain>/api` |
 
 Nothing else. Leftover variables from an older setup break the build on
 purpose: `VITE_ENABLE_MOCKING=true` is rejected (it would ship fake data), and
 a missing `VITE_APP_ENV` is rejected (it decides who may embed the web).
-Domains (`<key>.nquoc.vn`, `preview.<key>.nquoc.vn`) are created by wrangler on
+Domains (`<key>.<host-domain>`, `preview.<key>.<host-domain>`) are created by wrangler on
 the first deploy (`custom_domain = true`).
 
 `nquoc-<key>-preview` (the non-tech lane, `pnpm deploy:preview`) needs one
@@ -230,7 +230,7 @@ manual `pnpm exec wrangler deploy --env preview` to exist.
 | `pnpm contract:types` crashes | malformed `@swagger` JSDoc in nquoc-backend | fix the backend YAML; `contract:refresh` quarantines it meanwhile |
 | Push rejected with 403 | the agent's GitHub account lacks Write on the new repo | add it in the repo's Settings → Collaborators |
 | A follow-up commit never reaches `dev` | the PR was merged while the commit was still being pushed | check `git merge-base --is-ancestor <sha> origin/dev`, open a small follow-up PR |
-| Embedded module iframe is blank on staging, no error | `nquoc-<key>-dev` built with `VITE_APP_ENV=production` (or the prod API URL), so `preview.<key>.nquoc.vn` sends `frame-ancestors: nquoc.vn` and the browser refuses `preview.nquoc.vn` as embedder | fix the **`-dev`** project's build variables to `staging` + `api-dev.nquoc.vn`; `curl -sI https://preview.<key>.nquoc.vn \| grep -i frame-ancestors` must be `preview.nquoc.vn` (prod domain must be `nquoc.vn`) |
+| Embedded module iframe is blank on staging, no error | `nquoc-<key>-dev` built with `VITE_APP_ENV=production` (or the prod API URL), so `preview.<key>.<host-domain>` sends `frame-ancestors: <host-domain>` and the browser refuses `preview.<host-domain>` as embedder | fix the **`-dev`** project's build variables to `staging` + `<staging-api-domain>`; `curl -sI https://preview.<key>.<host-domain> \| grep -i frame-ancestors` must be `preview.<host-domain>` (prod domain must be `<host-domain>`) |
 | Fixed a Cloudflare build variable but the deploy still ships the old value | changing a build variable does **not** trigger a rebuild | Deployments → **Retry deployment** (or push a commit); confirm the bundle hash changed **and** the header/API flipped before believing it — a human "I fixed the var / retried" has shipped the old value more than once |
 | A module page hangs/shows a wrong-state screen forever (no team, wrong theme) despite the parent clearly having the right value (check its localStorage/store directly) and auth/data all succeeding | `embed-bridge.ts`'s `onThemeChange`/`onTeamChange` had no replay for a subscriber that mounts after the one-shot message already arrived — fixed in `nquoc-module-template#13` (2026-09-16); confirm the module has synced past it | `pnpm kit:sync`, or diagnose live by adding a temporary `console.log` inside `embed-bridge.ts`'s message `listener` switch statement to see whether the *raw* message arrives (it usually does) vs. whether the *hook* subscribed to it ever fires (the actual break point) |
 

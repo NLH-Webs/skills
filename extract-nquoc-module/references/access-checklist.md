@@ -54,15 +54,15 @@ gh auth refresh -h github.com -s read:packages > "$TEMP/ghrefresh.log" 2>&1 < /d
 - Workers Builds (the dashboard Git integration) report as GitHub check runs
   named `Workers Builds: <worker>`. Use these to watch module builds without
   dashboard access.
-- Module domains (`preview.<m>.nquoc.vn`, `<m>.nquoc.vn`) come from
+- Module domains (`preview.<m>.<host-domain>`, `<m>.<host-domain>`) come from
   `routes = [{ pattern = "...", custom_domain = true }]` in `wrangler.toml`.
-  The deploy token needs permission to edit DNS on the `nquoc.vn` zone; if the
+  The deploy token needs permission to edit DNS on the `<host-domain>` zone; if the
   domain is already attached to that Worker, the deploy just keeps it.
 - Switching a module on or off needs **no Cloudflare access**: it is the
   `enabled` flag in nquoc-user's `src/app/config/embedded-modules.ts`. Cloudflare
   access is needed for module Workers, custom domains and the emergency
   Rollback button on `nquoc-user-dev` / `nquoc-user-prod`.
-- **A custom domain can belong to one Worker only.** Adding `preview.nquoc.vn`
+- **A custom domain can belong to one Worker only.** Adding `preview.<host-domain>`
   to `nquoc-user-dev` while it is still on `nquoc-proxy-dev` fails with
   "Hostname already in use by other custom domain". Remove it from the proxy
   first, then add it to nquoc-user straight away (1–3 minutes without the site).
@@ -71,13 +71,13 @@ gh auth refresh -h github.com -s read:packages > "$TEMP/ghrefresh.log" 2>&1 < /d
 
 | Environment | URL (`VITE_AUTH_URL`) | Used by |
 | --- | --- | --- |
-| production | `https://auth.nhi.sg` | `nquoc.vn`, standalone `*-prod` Workers |
-| staging | `https://auth-dev.nhi.sg` | `preview.nquoc.vn`, standalone `*-dev` Workers, dev login, `pnpm deploy:preview` |
+| production | `https://auth.nhi.sg` | `<host-domain>`, standalone `*-prod` Workers |
+| staging | `https://auth-dev.nhi.sg` | `preview.<host-domain>`, standalone `*-dev` Workers, dev login, `pnpm deploy:preview` |
 
 Embedded modules never sign in, so they need nothing here. A **standalone**
 module (`"hosting": "standalone"`) needs its origins in auth-central's
-`ALLOWED_RETURN_ORIGINS` on both environments (`https://<key>.nquoc.vn`,
-`https://preview.<key>.nquoc.vn`, `http://localhost:<devPort>`); without it
+`ALLOWED_RETURN_ORIGINS` on both environments (`https://<key>.<host-domain>`,
+`https://preview.<key>.<host-domain>`, `http://localhost:<devPort>`); without it
 Google answers 400 and the recovery email is refused.
 
 Storage is Cloudflare R2 and realtime is the backend's SSE stream — both behind

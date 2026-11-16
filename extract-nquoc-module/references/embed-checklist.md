@@ -2,10 +2,10 @@
 
 > **Kit update (2026-09-16):** also confirm the deployed build has no dev login
 > and no mocks (`pnpm smoke <url>` checks this), and that the module is reached
-> through nquoc-user — opening `<key>.nquoc.vn` directly must redirect to
-> `nquoc.vn/n-<key>`.
+> through nquoc-user — opening `<key>.<host-domain>` directly must redirect to
+> `<host-domain>/n-<key>`.
 
-Run this on **staging** (`https://preview.nquoc.vn/n-<m>`) before enabling the
+Run this on **staging** (`https://preview.<host-domain>/n-<m>`) before enabling the
 module for production in `embedded-modules.ts`, and again on production right after.
 Use real accounts, never shared passwords typed by the agent: the human signs
 in; the agent watches the network and console.
@@ -22,7 +22,7 @@ rollout thread.
   while the module repos are LF. Use `diff --strip-trailing-cr …`, or compare
   git blob hashes (`git -C nquoc-user rev-parse HEAD:src/infrastructure/embed/embed-protocol.ts`
   vs the same in `nquoc-<m>`) — identical hash is definitive.
-- [ ] `pnpm run smoke https://preview.<m>.nquoc.vn` passes every check
+- [ ] `pnpm run smoke https://preview.<m>.<host-domain>` passes every check
 
 ## One system
 
@@ -38,12 +38,12 @@ rollout thread.
 - [ ] Navigate inside the module: the address bar follows (`/n-<m>/…`)
 - [ ] Back / Forward move through module pages without doubling or getting stuck
 - [ ] Notification bell (both bells) opens the right item — with the module closed, and with the module already open on another item
-- [ ] Opening `https://preview.<m>.nquoc.vn/<itemId>` directly lands on `https://preview.nquoc.vn/n-<m>/<itemId>`
+- [ ] Opening `https://preview.<m>.<host-domain>/<itemId>` directly lands on `https://preview.<host-domain>/n-<m>/<itemId>`
 
 ## Auth and data
 
 - [ ] First load shows data without asking to sign in
-- [ ] Token expiry: in DevTools set localStorage `auth-token` on preview.nquoc.vn to an invalid value, then act in the module → it recovers after one refresh, no request loop in the Network tab
+- [ ] Token expiry: in DevTools set localStorage `auth-token` on preview.<host-domain> to an invalid value, then act in the module → it recovers after one refresh, no request loop in the Network tab
 - [ ] Logout from nquoc-user's sidebar, sign in as another user, open the module → none of the first user's data or role shows
 - [ ] An account without the role sees "Chưa có quyền truy cập" inside the content area (not a blank page, not a login form)
 - [ ] Backend down / offline: "Không tải được …" with Thử lại, not a denial
@@ -57,7 +57,7 @@ rollout thread.
 
 ## Security
 
-- [ ] Response header of `https://preview.<m>.nquoc.vn/` has `Content-Security-Policy: frame-ancestors` with **the matching environment's** nquoc-user origin — staging must be exactly `https://preview.nquoc.vn`, production `https://nquoc.vn`. A `-dev` Worker built with the wrong `VITE_APP_ENV` passes "an nquoc-user origin" but names the *other* environment, so the shell is refused as embedder and the iframe is silently blank. `curl -sI https://preview.<m>.nquoc.vn/ | grep -i frame-ancestors`
+- [ ] Response header of `https://preview.<m>.<host-domain>/` has `Content-Security-Policy: frame-ancestors` with **the matching environment's** nquoc-user origin — staging must be exactly `https://preview.<host-domain>`, production `https://<host-domain>`. A `-dev` Worker built with the wrong `VITE_APP_ENV` passes "an nquoc-user origin" but names the *other* environment, so the shell is refused as embedder and the iframe is silently blank. `curl -sI https://preview.<m>.<host-domain>/ | grep -i frame-ancestors`
 - [ ] Embedding the module from any other page (e.g. a local HTML file) is refused by the browser
 - [ ] The deployed bundle is the embedded build (contains the embed bridge, `nquoc:ready`) — the smoke test checks this; no login page is reachable inside the module
 
