@@ -19,8 +19,8 @@ Holding account.
 
 | Env | nquoc-user | Module Worker | Module domain |
 | --- | --- | --- | --- |
-| staging | `preview.nquoc.vn` (`nquoc-user-dev`) | `nquoc-<m>-dev` | `preview.<m>.nquoc.vn` |
-| production | `nquoc.vn` (`nquoc-user-prod`) | `nquoc-<m>-prod` | `<m>.nquoc.vn` |
+| staging | `preview.<host-domain>` (`nquoc-user-dev`) | `nquoc-<m>-dev` | `preview.<m>.<host-domain>` |
+| production | `<host-domain>` (`nquoc-user-prod`) | `nquoc-<m>-prod` | `<m>.<host-domain>` |
 
 ## 0. Before starting
 
@@ -31,7 +31,7 @@ Holding account.
   `nquoc-user-dev`. Nothing changes for users yet.
 - **Do not merge the module's embedded build into `dev` while the edge proxy
   still routes `/n-<m>` to its Worker** — Workers Builds deploys it at once and
-  `preview.nquoc.vn/n-<m>` goes blank. This happened to N-Design on 2026-09-15;
+  `preview.<host-domain>/n-<m>` goes blank. This happened to N-Design on 2026-09-15;
   do §2 first.
 - `embed-protocol.ts` is identical in both repos:
 
@@ -44,7 +44,7 @@ Holding account.
 Only N-IT and N-Design ever were. Check the live state:
 
 ```bash
-curl -s -D - -o /dev/null https://preview.nquoc.vn/n-<m>/
+curl -s -D - -o /dev/null https://preview.<host-domain>/n-<m>/
 ```
 
 - `x-nquoc-route: n-<m>` → the proxy still sends `/n-<m>` to the module
@@ -54,8 +54,8 @@ curl -s -D - -o /dev/null https://preview.nquoc.vn/n-<m>/
 ## 2. Send `/n-<m>` back to nquoc-user (proxy modules only)
 
 **Preferred: take the proxy out of the path.** Cloudflare → `nquoc-proxy-dev` →
-Settings → Domains & Routes → remove `preview.nquoc.vn`; then immediately
-`nquoc-user-dev` → Domains & Routes → Add → Custom domain `preview.nquoc.vn`.
+Settings → Domains & Routes → remove `preview.<host-domain>`; then immediately
+`nquoc-user-dev` → Domains & Routes → Add → Custom domain `preview.<host-domain>`.
 (Adding it first fails: "Hostname already in use by other custom domain".)
 Check that responses no longer carry `x-nquoc-route`. Leave the proxy Worker
 for a few days as a way back, then delete it. Done for staging on 2026-09-15.
@@ -67,7 +67,7 @@ answer there (blank page, assets 404). So first make nquoc-user answer.
 
 1. **Human, Cloudflare:** `nquoc-proxy-dev` → Settings → Variables → set
    `ROLLBACK_MODULES=<m>` (comma-separate when both). Immediate, no deploy.
-2. **You:** check `curl -s -D - -o /dev/null https://preview.nquoc.vn/n-<m>/`
+2. **You:** check `curl -s -D - -o /dev/null https://preview.<host-domain>/n-<m>/`
    now says `x-nquoc-route: nquoc-user:rollback`. Users see the legacy page.
 3. **You:** make it durable — the next proxy deploy resets variables. In
    nquoc-user set `serve.dev` → `"legacy"` for the module in
@@ -88,10 +88,10 @@ answer there (blank page, assets 404). So first make nquoc-user answer.
    `NODE_AUTH_TOKEN`, and any `VITE_SUPABASE_*` / `VITE_AUTH_DRIVER` /
    `VITE_REALTIME_DRIVER` left from before 2026-09.
 2. Deploy (merge to `dev` triggers Workers Builds). `routes` with
-   `custom_domain = true` attaches `preview.<m>.nquoc.vn`; if the domain is
+   `custom_domain = true` attaches `preview.<m>.<host-domain>`; if the domain is
    already attached to that Worker in the dashboard, nothing changes.
    Watch the build with `gh api repos/<org>/<repo>/commits/dev/check-runs`.
-3. **You:** `pnpm run smoke https://preview.<m>.nquoc.vn` in the module repo.
+3. **You:** `pnpm run smoke https://preview.<m>.<host-domain>` in the module repo.
    Every check must pass.
 
 ## 4. Switch it on in staging
@@ -106,13 +106,13 @@ answer there (blank page, assets 404). So first make nquoc-user answer.
    `dev`, so nothing is testable before that merge regardless of PR count.
 2. A human merges the staging PR; Workers Builds deploys `nquoc-user-dev`.
 3. **You:** confirm the new nquoc-user bundle is live (its `index-*.js` name
-   changed) and `pnpm run smoke https://preview.<m>.nquoc.vn` passes. Also
-   `curl -sI https://preview.<m>.nquoc.vn/ | grep -i frame-ancestors` and
-   `nslookup preview.<m>.nquoc.vn 1.1.1.1` — a green Workers Build does not
+   changed) and `pnpm run smoke https://preview.<m>.<host-domain>` passes. Also
+   `curl -sI https://preview.<m>.<host-domain>/ | grep -i frame-ancestors` and
+   `nslookup preview.<m>.<host-domain> 1.1.1.1` — a green Workers Build does not
    prove the custom domain attached (seen on the N-HR/N-Report wave: both
    `-dev` builds succeeded while their domains were NXDOMAIN until a human
    added them by hand in the Cloudflare dashboard).
-4. **Human:** run `embed-checklist.md` on `https://preview.nquoc.vn/n-<m>` with
+4. **Human:** run `embed-checklist.md` on `https://preview.<host-domain>/n-<m>` with
    real accounts (requester, team member, leader, an account without access).
 5. **Rollback:** `nquoc-user-dev` → Deployments → Rollback (seconds), then a PR
    with `enabled.staging: false`.
@@ -132,7 +132,7 @@ answer there (blank page, assets 404). So first make nquoc-user answer.
    ```
 
    Then `git diff --stat origin/dev origin/main -- src/modules/<domain>`.
-4. **You:** module bundle config matches production: API `api.nquoc.vn`; for a
+4. **You:** module bundle config matches production: API `<production-api-domain>`; for a
    standalone module `VITE_AUTH_URL=https://auth.nhi.sg` (staging is `auth-dev.nhi.sg`).
 
 ## 6. Cut over in production
@@ -142,29 +142,29 @@ Quiet hour. Explain the rollback to the human before starting.
 1. **Before:** the `enabled.production: true` PR opened back in §4 step 1 is
    still open and green — merge it into nquoc-user `dev` now. The module
    repos' `dev` is ready — but `dev → main` NOT merged yet anywhere.
-2. **Proxy modules only:** move `nquoc.vn` off `nquoc-proxy-prod` onto
+2. **Proxy modules only:** move `<host-domain>` off `nquoc-proxy-prod` onto
    `nquoc-user-prod` as in §2 (remove, then add). Until the next step the
    legacy pages answer `/n-<m>` — acceptable for minutes, so do 2–4 back to back.
 3. **Tech Lead:** merge `dev → main` in the module repos (Workers Builds deploys
-   `nquoc-<m>-prod`); `pnpm run smoke https://<m>.nquoc.vn`.
+   `nquoc-<m>-prod`); `pnpm run smoke https://<m>.<host-domain>`.
 4. **Tech Lead:** merge `dev → main` in nquoc-user (deploys `nquoc-user-prod`
    with the module enabled).
-5. **Human:** `embed-checklist.md` on `https://nquoc.vn/n-<m>`. Watch for 30 minutes.
+5. **Human:** `embed-checklist.md` on `https://<host-domain>/n-<m>`. Watch for 30 minutes.
 6. **Rollback:** `nquoc-user-prod` → Deployments → Rollback (legacy pages back
    in seconds). A bad module release alone: `npx wrangler@4 rollback --env=""`
    in the module repo.
 
 ## 7. After cutover
 
-- Add `https://<m>.nquoc.vn` and `https://preview.<m>.nquoc.vn` to
+- Add `https://<m>.<host-domain>` and `https://preview.<m>.<host-domain>` to
   nquoc-backend's `CORS_ORIGIN` (Railway), so the module keeps working when the
   allow-all entry in `server.ts` is removed.
 - **Legacy code:** after 1–2 weeks stable, delete the legacy page from
   nquoc-user in its own PR. Move anything other pages still import first
   (for IT/Design: `ITOrderEventCard`, `AssignMemberSheet`, the `UIOrder` type).
 - **Retiring the edge proxy** (once no module is served `standalone` in any
-  env): move the custom domains `preview.nquoc.vn` → `nquoc-user-dev` and
-  `nquoc.vn` → `nquoc-user-prod` (Cloudflare → Worker → Domains & Routes → Add
+  env): move the custom domains `preview.<host-domain>` → `nquoc-user-dev` and
+  `<host-domain>` → `nquoc-user-prod` (Cloudflare → Worker → Domains & Routes → Add
   Custom Domain, confirm the move), check the site, then delete
   `nquoc-proxy-dev/prod`. In nquoc-user delete `platform/` and the `edge:*` scripts
   (`packages/shell/` and both workflows are already gone); deprecate

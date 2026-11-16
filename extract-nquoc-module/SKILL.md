@@ -1,6 +1,6 @@
 ---
 name: extract-nquoc-module
-description: Extract an N-Quốc module (N-Task, N-Doc, Edit, Admin, HR, N-Lead, N-Chat, …) out of the nquoc-user monolith into its own frontend repo created from nquoc-module-template, that nquoc-user embeds in an iframe (nquoc.vn/n-<m>/*), isolate its backend module (repository, policy, OpenAPI) in the same wave, and roll it out to staging and production. Use when asked to extract, migrate, split out, or stand up a module as its own app — even when the user only says a module name ("tách N-Task", "/extract-nquoc-module task") — or to repeat what was done for N-IT / N-Design / N-Fit. Also use when auditing an extraction someone else did, when checking whether a module is ready, when deploying or cutting a module over on preview.nquoc.vn / nquoc.vn, when applying or syncing the module kit (kit:diff, kit:sync, nquoc-module-template), when touching nquoc-user's embedded-modules config, EmbeddedModule, the embed protocol or module-urls, or when the user asks "what do I do next to make <module> run".
+description: Extract an N-Quốc module (N-Task, N-Doc, Edit, Admin, HR, N-Lead, N-Chat, …) out of the nquoc-user monolith into its own frontend repo created from nquoc-module-template, that nquoc-user embeds in an iframe (<host-domain>/n-<m>/*), isolate its backend module (repository, policy, OpenAPI) in the same wave, and roll it out to staging and production. Use when asked to extract, migrate, split out, or stand up a module as its own app — even when the user only says a module name ("tách N-Task", "/extract-nquoc-module task") — or to repeat what was done for N-IT / N-Design / N-Fit. Also use when auditing an extraction someone else did, when checking whether a module is ready, when deploying or cutting a module over on preview.<host-domain> / <host-domain>, when applying or syncing the module kit (kit:diff, kit:sync, nquoc-module-template), when touching nquoc-user's embedded-modules config, EmbeddedModule, the embed protocol or module-urls, or when the user asks "what do I do next to make <module> run".
 ---
 
 # Extracting an N-Quốc module
@@ -32,7 +32,7 @@ Derive the rest yourself, then confirm it in one short message:
 
 | Field | How to derive |
 | --- | --- |
-| `key` | lower-case, no `n-` prefix: N-Task → `task` (domain `task.nquoc.vn`, path `/n-task`) |
+| `key` | lower-case, no `n-` prefix: N-Task → `task` (domain `task.<host-domain>`, path `/n-task`) |
 | `name` | display name as used in nquoc-user's sidebar (`src/constants/config.ts`, i18n `menu.*`) |
 | `devPort` | next free port after the entries in `nquoc-user/src/app/config/embedded-modules.ts` (8080 user, 8081 it, 8082 design, 8083 fit, 8084 edit → 8085…) |
 | scope | routes in `nquoc-user/src/App.tsx` under `/n-<key>` + the pages they render |
@@ -143,11 +143,11 @@ blocking on it.
     `dev`. Same result, `ui/*` branches preserved. (`references/kit.md`.)
 11. **A wrong `-dev` build variable is invisible until the iframe is blank.** If
     `nquoc-<key>-dev` builds with `VITE_APP_ENV=production` (or the prod API URL),
-    `preview.<key>.nquoc.vn` ships `frame-ancestors: nquoc.vn` — so the *staging*
-    shell `preview.nquoc.vn` is refused as an embedder and the iframe is blank,
-    with no error. Always `curl -sI https://preview.<key>.nquoc.vn | grep -i
-    frame-ancestors` after a deploy: staging must be `preview.nquoc.vn`, prod
-    `nquoc.vn`. And **changing a Cloudflare build variable does not rebuild** —
+    `preview.<key>.<host-domain>` ships `frame-ancestors: <host-domain>` — so the *staging*
+    shell `preview.<host-domain>` is refused as an embedder and the iframe is blank,
+    with no error. Always `curl -sI https://preview.<key>.<host-domain> | grep -i
+    frame-ancestors` after a deploy: staging must be `preview.<host-domain>`, prod
+    `<host-domain>`. And **changing a Cloudflare build variable does not rebuild** —
     the human must Retry the deployment (or push); confirm the bundle hash
     changed *and* the header flipped before believing it.
 12. **The contract checker inlines a `const` but not `as const`, and cannot see
@@ -198,15 +198,15 @@ blocking on it.
     generator sorts it). A full `openapi:generate` reshuffles paths/components per
     OS and produces an unreadable diff.
 18. **A module can own a bare product domain** instead of `n-<key>`: set
-    `webHost` on its `embedded-modules.ts` entry (N-Admin → `admin.nquoc.vn`).
+    `webHost` on its `embedded-modules.ts` entry (N-Admin → `admin.<host-domain>`).
     `moduleWebUrl(key, env, devPort, host?)` defaults `host` to `n-<key>`;
     `frame-ancestors` is keyed on `VITE_APP_ENV` (the nquoc-user origin), not the
     module's own domain, so nothing else changes. If the bare domain is held by
     another app (a Vercel deploy), the Cloudflare Worker can't attach it until
     that app releases it — a human prerequisite for the prod cutover. **The
     template's own default is now the bare domain** (commit "domain-bare"): a
-    freshly-scaffolded `wrangler.toml` already reads `<key>.nquoc.vn` /
-    `preview.<key>.nquoc.vn` with no edits needed — verify this against the
+    freshly-scaffolded `wrangler.toml` already reads `<key>.<host-domain>` /
+    `preview.<key>.<host-domain>` with no edits needed — verify this against the
     actual file after `init-module.mjs` runs rather than assuming you must set
     `webHost` by hand (N-Task, 2026-09-16).
 19. **A large module's backend isolation (Phase B2/D-style PR stack) parallelizes
@@ -280,13 +280,13 @@ blocking on it.
 ## Embedding in nquoc-user
 
 ```
-nquoc.vn/n-<m>/123          nquoc-user: sidebar, login, bell, theme
-└── <iframe src="https://<m>.nquoc.vn/123">   the module web: pages only
+<host-domain>/n-<m>/123          nquoc-user: sidebar, login, bell, theme
+└── <iframe src="https://<m>.<host-domain>/123">   the module web: pages only
         ▲ postMessage (embed-protocol.ts v1)
         │  parent → module: token, navigate, theme
         │  module → parent: ready, token-refresh, navigated, open, logout, auth-failed
         ▼
-    api.nquoc.vn (nquoc-backend, unchanged)
+    <production-api-domain> (nquoc-backend, unchanged)
 ```
 
 nquoc-user side (already built, reuse it):
@@ -294,7 +294,7 @@ nquoc-user side (already built, reuse it):
 - `src/app/config/embedded-modules.ts` — one entry per module
   `{ key, name, basePath, devPort, enabled: { staging, production } }`, plus an
   optional `webHost` when the module owns a bare product domain instead of
-  `n-<key>` (N-Admin → `webHost: 'admin'` → `admin.nquoc.vn`; gotcha 18). The
+  `n-<key>` (N-Admin → `webHost: 'admin'` → `admin.<host-domain>`; gotcha 18). The
   `enabled` flags are the only switch (a reviewed PR, no Cloudflare variable).
   URL derived from the host by `src/infrastructure/embed/module-urls.ts`
   (`moduleWebUrl(key, env, devPort, host = \`n-${key}\`)`);
@@ -414,15 +414,15 @@ every finding before fixing it. `references/review-prompts.md` has the prompts.
 ## Phase 6 — Deploy and switch on
 
 1. Merge the module PR into `dev` → Workers Builds deploys
-   `preview.<key>.nquoc.vn`. Watch the check-run, not the clock. **Then verify
-   the deployed artifact yourself** — `curl -sI https://preview.<key>.nquoc.vn/
-   | grep -i frame-ancestors` and `nslookup preview.<key>.nquoc.vn 1.1.1.1`. A
+   `preview.<key>.<host-domain>`. Watch the check-run, not the clock. **Then verify
+   the deployed artifact yourself** — `curl -sI https://preview.<key>.<host-domain>/
+   | grep -i frame-ancestors` and `nslookup preview.<key>.<host-domain> 1.1.1.1`. A
    green Workers Build does not prove the custom domain actually attached: on
    the N-HR/N-Report wave both `-dev` builds reported success while their
-   `preview.<key>.nquoc.vn` domains were NXDOMAIN (the route never attached on
+   `preview.<key>.<host-domain>` domains were NXDOMAIN (the route never attached on
    first deploy) — only a human with Cloudflare dashboard access could add it
    by hand. Catch this before it wastes a review cycle.
-2. `pnpm smoke https://preview.<key>.nquoc.vn` — root build, SPA fallback,
+2. `pnpm smoke https://preview.<key>.<host-domain>` — root build, SPA fallback,
    `frame-ancestors` = that environment's nquoc-user, embedded build, no
    localhost API, **no dev login and no mocks**.
 3. **Open two nquoc-user PRs at once, not one at a time:** `enabled.staging:
@@ -439,8 +439,8 @@ every finding before fixing it. `references/review-prompts.md` has the prompts.
    from commits on `dev`; there is no PR-preview for nquoc-user itself), so
    there is no way to verify staging before that merge, one PR or two.
 4. Merge the staging PR → run `references/embed-checklist.md` with real
-   accounts on `preview.nquoc.vn/n-<key>`.
-5. Production, in this order: module `dev → main` (deploys `<key>.nquoc.vn`,
+   accounts on `preview.<host-domain>/n-<key>`.
+5. Production, in this order: module `dev → main` (deploys `<key>.<host-domain>`,
    creates the domain) → smoke it → merge the already-open nquoc-user
    `enabled.production: true` PR → nquoc-user `dev → main`. The reverse order
    embeds a domain that does not exist yet.
@@ -483,7 +483,7 @@ Reference PR: NLH-NQUOC-LABS/nquoc-user#729 (design + it + fit, −12.1k lines).
    (`references/kit.md`); once `pnpm exec wrangler deploy --env preview` for the
    preview Worker.
 4. Merge PRs (merger ≠ author) and open `dev → main` when going to production.
-5. Test on `preview.nquoc.vn/n-<key>` and `nquoc.vn/n-<key>` with real accounts.
+5. Test on `preview.<host-domain>/n-<key>` and `<host-domain>/n-<key>` with real accounts.
 6. Optional: repository secret `KIT_READ_TOKEN` so `kit-drift` can run.
 
 ## Definition of done
@@ -512,13 +512,13 @@ Reference PR: NLH-NQUOC-LABS/nquoc-user#729 (design + it + fit, −12.1k lines).
 | done | IT, Design | pilot + second Order-domain module; embedded since 2026-09-15 |
 | done | N-Fit | first module rebuilt straight on the kit (2026-09-16); backend API still missing, UI shows empty states |
 | done | **N-Edit** | 2026-09-16; first with full backend isolation (order policy layer, storage adapter, boundary test) done in the same wave, and first `contract:check`-clean order module; `nquoc-edit` (repo already existed as a mockup) |
-| done | **Admin** | 2026-09-16; `modules/order` **copy #4** from `nquoc-edit` + re-added `order-detail`/`order-rounds`/`order-content-studio`; first full **duty** backend isolation (repository + policy + boundary test, `src/modules/duty`); first module on a **bare product domain** (`admin.nquoc.vn`, not `n-admin`) via the `webHost` override; `nquoc-admin` (repo pre-existed as a mockup) |
-| done | **N-Meeting** | 2026-09-16; first Wave-4 (realtime/collab) module — but needed *no* frontend realtime (Google Calendar degraded to an empty state, contract gap recorded); backend `nmeeting` module already existed, needed OpenAPI only; renamed `nmeeting`→`meeting` (backend folder + `/nmeeting`→`/meeting` with the old path kept as a deprecated alias) **after** the initial migration PR, per user request — see gotcha 24; bare domain `meeting.nquoc.vn` |
+| done | **Admin** | 2026-09-16; `modules/order` **copy #4** from `nquoc-edit` + re-added `order-detail`/`order-rounds`/`order-content-studio`; first full **duty** backend isolation (repository + policy + boundary test, `src/modules/duty`); first module on a **bare product domain** (`admin.<host-domain>`, not `n-admin`) via the `webHost` override; `nquoc-admin` (repo pre-existed as a mockup) |
+| done | **N-Meeting** | 2026-09-16; first Wave-4 (realtime/collab) module — but needed *no* frontend realtime (Google Calendar degraded to an empty state, contract gap recorded); backend `nmeeting` module already existed, needed OpenAPI only; renamed `nmeeting`→`meeting` (backend folder + `/nmeeting`→`/meeting` with the old path kept as a deprecated alias) **after** the initial migration PR, per user request — see gotcha 24; bare domain `meeting.<host-domain>` |
 | done | **N-HR** | 2026-09-16; staging only so far (`enabled.production: false`) pending the embed-checklist |
 | in progress | **N-Report** | 2026-09-16; migrated from the legacy NReport page; staging enabled, needs new backend time-off read endpoints before production |
 | in progress | **N-Task** | started 2026-09-16 (`plans/task-boundary-audit.md`); first module needing **no BaaS client at all** in the module web (realtime + Yjs collab are both parent-owned/dead code, not in the live closure); first backend module isolated **from a completely unisolated state** (0 endpoints in OpenAPI, ~276 direct Supabase calls, 41-branch message-sniffing controller, 33 flat-500 catches, real authorization holes on `/gdrive/*` — see gotchas 19, 22, 23) — the T0–T7 + T-SEC PR-stack pattern here is the reference for any future module in this state, more so than duty/order which already had partial isolation; needed a **new embed-protocol message** (`nquoc:team`, gotcha in `module-embed-architecture.md`) because its board is scoped to the sidebar's active team, unlike every prior module which either owns no team-scoped data or resolves its own primary team from `/users/me/teams` (N-Report's `useActiveTeam` pattern) |
 | in progress | **N-Learning** | started 2026-09-17 (`plans/learning-boundary-audit.md` in nquoc-user); backend PR stack merged into one wave (rename `/nlearning`→`/learning` with a deprecated alias, OpenAPI docs file, repository boundary, policy-gated writes, server-side MCQ grading, upload limits, new `POST /learning/activity-events`, boundary test — nquoc-backend#442-447); repo `nquoc-learning` pre-existed as a lone README (gotcha 10) — kit init + full frontend migration in nquoc-learning#1; nquoc-user registered disabled with legacy Training/TrainingDetail pages kept as fallback (nquoc-user#773, same phased pattern as N-HR/N-Report); still needs the nquoc-backend PRs merged + deployed to staging, Cloudflare Workers Builds for nquoc-learning, and the staging embed-checklist before `enabled.staging` can flip |
-| in progress | **N-Team** | started 2026-09-17 (`plans/team-boundary-audit.md`, contract `plans/team-api-contract.md`); first **standalone** kit repo — `team.nquoc.vn` keeps its own login + sidebar and is NOT in nquoc-user `embedded-modules.ts` (kit gains `hosting: "standalone"`: real login at auth-central, `/auth-callback` for Google and `/auth/reset-password` for recovery, `frame-ancestors 'none'`); legacy repo was a full antd + Supabase app rebuilt in place (archive tag `archive/legacy-team`); leader-side N-Doc/N-Learning authoring/Feedback admin move to their module repos; backend TM0 security (public/unguarded `/teams` writes) → TM-AUTH redirect_origin → TM1 OpenAPI → TM2 endpoints → TM3 repo+policy → TM4 boundary |
+| in progress | **N-Team** | started 2026-09-17 (`plans/team-boundary-audit.md`, contract `plans/team-api-contract.md`); first **standalone** kit repo — `<kit-app-domain>` keeps its own login + sidebar and is NOT in nquoc-user `embedded-modules.ts` (kit gains `hosting: "standalone"`: real login at auth-central, `/auth-callback` for Google and `/auth/reset-password` for recovery, `frame-ancestors 'none'`); legacy repo was a full antd + Supabase app rebuilt in place (archive tag `archive/legacy-team`); leader-side N-Doc/N-Learning authoring/Feedback admin move to their module repos; backend TM0 security (public/unguarded `/teams` writes) → TM-AUTH redirect_origin → TM1 OpenAPI → TM2 endpoints → TM3 repo+policy → TM4 boundary |
 | 1 | N-Doc, Academy | self-contained, low coupling |
 | 3 | N-Data, Social Content, Potential, Application, Enrollment, Experience, Completion | mostly CRUD over their own domain |
 | 4 | N-Chat | realtime/collab — hardest, do last |

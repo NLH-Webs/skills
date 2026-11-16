@@ -93,8 +93,8 @@ Two things make this actually work, both learned the hard way:
 ## No base path
 
 The module web is served at the **root of its own domain**
-(`preview.<m>.nquoc.vn`, `<m>.nquoc.vn`). nquoc-user owns the public URL
-`nquoc.vn/n-<m>/*` and maps it both ways:
+(`preview.<m>.<host-domain>`, `<m>.<host-domain>`). nquoc-user owns the public URL
+`<host-domain>/n-<m>/*` and maps it both ways:
 
 | nquoc-user (address bar) | module (iframe) |
 | --- | --- |
@@ -162,7 +162,7 @@ Dashboard, Calendar, Rules/Policy, Teams, Profile and Notifications are CORE,
 and so is the chrome: sidebar, bell, user menu, logout, team switcher, theme.
 They are what makes independently-deployed webs still feel like one system.
 Because nquoc-user keeps owning `/n-<m>/*`, its sidebar, both notification
-bells and backend links (`route_path`, `https://nquoc.vn/n-<m>/<id>`) work
+bells and backend links (`route_path`, `https://<host-domain>/n-<m>/<id>`) work
 without any change; the iframe follows via `nquoc:navigate`.
 
 ## Topology
