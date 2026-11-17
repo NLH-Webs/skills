@@ -133,7 +133,7 @@ answer there (blank page, assets 404). So first make nquoc-user answer.
 
    Then `git diff --stat origin/dev origin/main -- src/modules/<domain>`.
 4. **You:** module bundle config matches production: API `<production-api-domain>`; for a
-   standalone module `VITE_AUTH_URL=https://auth.nhi.sg` (staging is `auth-dev.nhi.sg`).
+   standalone module `VITE_AUTH_URL=https://<auth-domain>` (staging is `<auth-dev-domain>`).
 
 ## 6. Cut over in production
 

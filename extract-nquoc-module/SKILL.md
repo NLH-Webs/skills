@@ -108,7 +108,7 @@ blocking on it.
 2. **You are probably on the wrong branch.** Run
    `git -C nquoc-user branch --show-current` first; the team works on `dev`.
 3. **The platform is auth-central + nquoc-backend, nothing else.** Sign-in is
-   auth-central (`auth.nhi.sg`; an embedded web never signs in — the parent
+   auth-central (`<auth-domain>`; an embedded web never signs in — the parent
    hands it the token), files are Cloudflare R2 **behind backend upload
    endpoints** (nquoc-it: `uploadMediaTo(endpoint, file)`), live updates are
    the backend's SSE stream (`GET /api/realtime/stream`). N-Quốc left
@@ -181,9 +181,9 @@ blocking on it.
     `` const b=(k)=>`/orders/${k}` `` helper to literal `` `/orders/${teamKey}/…` ``
     paths (gotcha 12), then `export *`-ing it from the order barrel and pruning by
     reachability — rather than porting functions one by one.
-16. **The backend is a different GitHub org.** `NLH-NQUOC-CORE/nquoc-backend`,
-    not `NLH-NQUOC-LABS` (all the frontend repos). `gh` needs
-    `--repo NLH-NQUOC-CORE/nquoc-backend`. And the toolchain often isn't global:
+16. **The backend is a different GitHub org.** `<backend-org>/nquoc-backend`,
+    not `<frontend-org>` (all the frontend repos). `gh` needs
+    `--repo <backend-org>/nquoc-backend`. And the toolchain often isn't global:
     `npx -y bun@<pinned>` for the backend (`bun test`/`openapi:audit`),
     `npx -y pnpm@10.10.0` for module repos **with `CI=true`** (without it, `pnpm
     add`/`install` silently keep the frozen lockfile and never install the new
@@ -472,11 +472,11 @@ its own PR (N-Fit's static page could go immediately; Design/IT waited).
   `git tag archive/legacy-<key> origin/main && git push origin archive/legacy-<key>`
 - after this, "flip `enabled` to false" is no longer a rollback; say so in the PR
 
-Reference PR: NLH-NQUOC-LABS/nquoc-user#729 (design + it + fit, −12.1k lines).
+Reference PR: <frontend-org>/nquoc-user#729 (design + it + fit, −12.1k lines).
 
 ## Human steps (the person, not the agent)
 
-1. Create `NLH-NQUOC-LABS/nquoc-<key>` from the template; create `dev` and make
+1. Create `<frontend-org>/nquoc-<key>` from the template; create `dev` and make
    it the default branch.
 2. Give the account doing the work **Write** access.
 3. Cloudflare: two Workers Builds projects + build variables + branch control

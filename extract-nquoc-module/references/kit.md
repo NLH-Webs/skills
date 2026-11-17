@@ -1,7 +1,7 @@
 # The N-Quốc module kit
 
 Everything a module repo shares with every other module repo. Source of truth:
-[`nquoc-module-template`](https://github.com/NLH-NQUOC-LABS/nquoc-module-template)
+[`nquoc-module-template`](https://github.com/<frontend-org>/nquoc-module-template)
 (GitHub template repo; local checkout at `nquoc-module-template/` in this
 workspace). Full standard: `plans/frontend-kit-standard.md`.
 
@@ -26,8 +26,8 @@ Applied to `nquoc-design`, `nquoc-it`, `nquoc-fit` and `nquoc-edit` (2026-09-15/
 ## Creating a module repo
 
 ```bash
-# 1. GitHub → nquoc-module-template → "Use this template" → NLH-NQUOC-LABS/nquoc-<key>
-git clone https://github.com/NLH-NQUOC-LABS/nquoc-<key>
+# 1. GitHub → nquoc-module-template → "Use this template" → <frontend-org>/nquoc-<key>
+git clone https://github.com/<frontend-org>/nquoc-<key>
 cd nquoc-<key>
 node scripts/init-module.mjs <key> "<Name>" <devPort>   # e.g. fit "N-Fit" 8083
 pnpm install && cp .env.example .env && pnpm dev
@@ -82,7 +82,7 @@ The `kit-drift` workflow opens an issue weekly; it needs a repository secret
 
 - Standalone + `VITE_APP_ENV` `development` or `preview` → `DevLoginScreen`
   posts to `/auth/login` at auth-central (`VITE_AUTH_URL`, staging:
-  `https://auth-dev.nhi.sg`) and refreshes through its `/auth/refresh`; the
+  `https://<auth-dev-domain>`) and refreshes through its `/auth/refresh`; the
   session lives in `localStorage` per module + API URL. Without
   `VITE_AUTH_URL` the web shows the config-error screen.
 - Inside nquoc-user's iframe the embed bridge supplies the token; the dev login
@@ -114,7 +114,7 @@ own sidebar, staging and production) sets `"hosting": "standalone"` in
   at auth-central). Tokens only in `localStorage` `nquoc:session:<key>:<api>`;
   `main.tsx` strips them from the address bar first.
 - Cloudflare build variables: an embedded module's, **plus `VITE_AUTH_URL`**
-  (`https://auth.nhi.sg` on -prod, `https://auth-dev.nhi.sg` on -dev).
+  (`https://<auth-domain>` on -prod, `https://<auth-dev-domain>` on -dev).
 - **Human step**: auth-central `ALLOWED_RETURN_ORIGINS` (both environments)
   adds `https://<key>.<host-domain>`, `https://preview.<key>.<host-domain>`,
   `http://localhost:<devPort>`. Without it Google answers 400 and
