@@ -17,11 +17,11 @@ gh auth status
 ```
 
 ```bash
-gh api repos/NLH-NQUOC-LABS/<repo> -q .permissions
+gh api repos/<frontend-org>/<repo> -q .permissions
 ```
 
 Repos are `nquoc-user`, `nquoc-it`, `nquoc-design`, and `nquoc-backend`, which
-lives in the `NLH-NQUOC-CORE` org. You need `push: true` to push branches.
+lives in the `<backend-org>` org. You need `push: true` to push branches.
 
 - A 404 right after someone "added you" usually means the **invitation is
   pending**. Find it with `gh api user/repository_invitations`, and ask before
@@ -71,8 +71,8 @@ gh auth refresh -h github.com -s read:packages > "$TEMP/ghrefresh.log" 2>&1 < /d
 
 | Environment | URL (`VITE_AUTH_URL`) | Used by |
 | --- | --- | --- |
-| production | `https://auth.nhi.sg` | `<host-domain>`, standalone `*-prod` Workers |
-| staging | `https://auth-dev.nhi.sg` | `preview.<host-domain>`, standalone `*-dev` Workers, dev login, `pnpm deploy:preview` |
+| production | `https://<auth-domain>` | `<host-domain>`, standalone `*-prod` Workers |
+| staging | `https://<auth-dev-domain>` | `preview.<host-domain>`, standalone `*-dev` Workers, dev login, `pnpm deploy:preview` |
 
 Embedded modules never sign in, so they need nothing here. A **standalone**
 module (`"hosting": "standalone"`) needs its origins in auth-central's
